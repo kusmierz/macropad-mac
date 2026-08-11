@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
-"""Ikoner: app-ikon og menylinje-ikon (template).
+"""Icons: app icon and menu-bar icon (template).
 
-    python3 render_icons.py      # skriver PNG-er til ../build_assets/
+    python3 render_icons.py      # writes PNGs to ../build_assets/
 
-Krever cairosvg (og libcairo). Selve .icns-en bygges av build.sh med iconutil,
-som bare finnes på macOS.
+Requires cairosvg (and libcairo). build.sh creates the .icns file with iconutil,
+which is available only on macOS.
 """
 import os
 import subprocess
@@ -16,8 +16,8 @@ os.makedirs(OUT, exist_ok=True)
 
 
 def app_icon_svg():
-    """Padden i silhuett: knott og taster — gjenkjennelig i 32 px."""
-    # kroppen, forenklet: rund lobe øverst til høyre, tastefelt under
+    """The pad in silhouette: knob and keys, recognizable at 32 px."""
+    # Simplified body: round lobe at top right, keys below.
     return '''<svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
 <defs>
   <linearGradient id="bg" x1="0" y1="0" x2="0.4" y2="1">
@@ -50,7 +50,7 @@ def app_icon_svg():
 
 
 def menubar_svg():
-    """Template-ikon: kun svart + alpha. macOS farger det selv etter modus."""
+    """Template icon: black and alpha only. macOS colors it for each mode."""
     return '''<svg width="44" height="44" viewBox="0 0 44 44" xmlns="http://www.w3.org/2000/svg">
 <g fill="#000000">
   <circle cx="30" cy="13" r="8.5"/>
@@ -62,18 +62,18 @@ def menubar_svg():
 </svg>'''
 
 
-# ── menylinje-ikon: 1x og 2x, template ──────────────────────────────────
+# ── menu-bar icon: 1x and 2x template ───────────────────────────────────
 mb = menubar_svg().encode()
 cairosvg.svg2png(bytestring=mb, write_to=f"{OUT}/MenubarIconTemplate.png",
                  output_width=22, output_height=22)
 cairosvg.svg2png(bytestring=mb, write_to=f"{OUT}/MenubarIconTemplate@2x.png",
                  output_width=44, output_height=44)
 
-# ── app-ikon: .iconset → .icns ──────────────────────────────────────────
+# ── app icon: .iconset → .icns ──────────────────────────────────────────
 ico = app_icon_svg().encode()
 iconset = f"{OUT}/Makropad.iconset"
 os.makedirs(iconset, exist_ok=True)
-# Kun navnene iconutil godtar
+# Use only the names accepted by iconutil.
 for size in (16, 32, 128, 256, 512):
     cairosvg.svg2png(bytestring=ico, write_to=f"{iconset}/icon_{size}x{size}.png",
                      output_width=size, output_height=size)
@@ -83,12 +83,12 @@ for size in (16, 32, 128, 256, 512):
 cairosvg.svg2png(bytestring=ico, write_to=f"{OUT}/icon_preview.png",
                  output_width=512, output_height=512)
 
-# .icns bygges kun der iconutil finnes (macOS). build.sh gjør dette uansett.
+# The .icns file is created only where iconutil is available (macOS); build.sh does this either way.
 if subprocess.run(["which", "iconutil"], capture_output=True).returncode == 0:
     r = subprocess.run(["iconutil", "-c", "icns", iconset, "-o", f"{OUT}/Makropad.icns"],
                        capture_output=True, text=True)
-    print(r.stderr.strip() or f"skrev {OUT}/Makropad.icns")
+    print(r.stderr.strip() or f"wrote {OUT}/Makropad.icns")
 else:
-    print("iconutil finnes ikke her — .icns bygges av build.sh på macOS")
+    print("iconutil is not available here — build.sh creates the .icns file on macOS")
 
-print("ferdig:", sorted(os.listdir(OUT)))
+print("done:", sorted(os.listdir(OUT)))

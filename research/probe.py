@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Probe: finn og åpne vendor-HID-grensesnittet på XZKJ-makropaden (514C:8850)."""
+"""Probe: find and open the vendor HID interface on the XZKJ macropad (514C:8850)."""
 import hid
 
 VID, PID = 0x514C, 0x8850
 
 devs = [d for d in hid.enumerate(VID, PID)]
 if not devs:
-    print("Fant ingen enhet 514C:8850 — er den koblet til?")
+    print("No 514C:8850 device found — is it connected?")
     raise SystemExit(1)
 
 for d in devs:
@@ -15,12 +15,12 @@ for d in devs:
 
 vendor = [d for d in devs if d["usage_page"] == 0xFF00]
 if not vendor:
-    print("\nFant ikke usage_page 0xFF00 — prøver interface-nummer i stedet.")
+    print("\nNo usage_page 0xFF00 found — trying the interface number instead.")
     raise SystemExit(2)
 
 path = vendor[0]["path"]
-print(f"\nÅpner vendor-grensesnitt: {path.decode()}")
+print(f"\nOpening vendor interface: {path.decode()}")
 h = hid.device()
 h.open_path(path)
-print("Åpnet OK:", h.get_manufacturer_string(), "/", h.get_product_string())
+print("Opened successfully:", h.get_manufacturer_string(), "/", h.get_product_string())
 h.close()
