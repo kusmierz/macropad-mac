@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Taktil Stillhet — Makropad-konfigurator, designstudie. SVG -> PNG."""
+"""Tactile Silence — Makropad configurator design study. SVG -> PNG."""
 import cairosvg
 
 W, H = 2560, 1600
@@ -122,13 +122,13 @@ svg.append(f'<text x="{dx+dw/2}" y="{dy+dh+52}" text-anchor="middle" font-family
 ix = divx + 96
 iw = wx + ww - 96 - ix
 
-svg.append(f'<text x="{ix}" y="{wy+205}" font-family="{MED}" font-size="22" fill="{GRAY5}" letter-spacing="5">TAST 1 · RAD 1 · KOLONNE 1</text>')
+svg.append(f'<text x="{ix}" y="{wy+205}" font-family="{MED}" font-size="22" fill="{GRAY5}" letter-spacing="5">KEY 1 · ROW 1 · COLUMN 1</text>')
 
 # big binding display
 svg.append(f'<text x="{ix-4}" y="{wy+345}" font-size="112">'
            f'<tspan font-family="{SYM}" fill="{INK}">⌘</tspan>'
            f'<tspan font-family="{THIN}" fill="{INK}" dx="14">C</tspan></text>')
-svg.append(f'<text x="{ix}" y="{wy+400}" font-family="{SANS}" font-size="23" fill="{GRAY6}">Kopier — sendes som Cmd + C</text>')
+svg.append(f'<text x="{ix}" y="{wy+400}" font-family="{SANS}" font-size="23" fill="{GRAY6}">Copy — sends Cmd + C</text>')
 
 svg.append(f'<line x1="{ix}" y1="{wy+470}" x2="{ix+iw}" y2="{wy+470}" stroke="{HAIR}" stroke-width="1.5"/>')
 
@@ -137,7 +137,7 @@ seg_y = wy + 520
 seg_w, seg_h = 620, 68
 svg.append(f'<rect x="{ix}" y="{seg_y}" width="{seg_w}" height="{seg_h}" rx="17" fill="#F1F1F4"/>')
 svg.append(f'<rect x="{ix+5}" y="{seg_y+5}" width="{seg_w/3-10}" height="{seg_h-10}" rx="13" fill="#FFFFFF" stroke="#E0E0E4" stroke-width="1"/>')
-for i, t in enumerate(("Tastatur", "Media", "Mus")):
+for i, t in enumerate(("Keyboard", "Media", "Mouse")):
     fill = INK if i == 0 else GRAY5
     weight = ' font-weight="bold"' if i == 0 else ""
     svg.append(f'<text x="{ix + seg_w/6 + i*seg_w/3}" y="{seg_y+seg_h/2+9}" text-anchor="middle" font-family="{SANS}" font-size="25" fill="{fill}"{weight}>{t}</text>')
@@ -161,7 +161,7 @@ svg.append(f'<line x1="{ix}" y1="{chip_y+170}" x2="{ix+iw}" y2="{chip_y+170}" st
 
 # layer section
 ly = chip_y + 245
-svg.append(f'<text x="{ix}" y="{ly}" font-family="{MED}" font-size="20" fill="{GRAY5}" letter-spacing="5">LAG</text>')
+svg.append(f'<text x="{ix}" y="{ly}" font-family="{MED}" font-size="20" fill="{GRAY5}" letter-spacing="5">LAYER</text>')
 for i in range(3):
     cx = ix + 30 + i*104
     cy = ly + 62
@@ -174,18 +174,18 @@ for i in range(3):
 
 # buttons bottom
 by = wy + wh - 150
-svg.append(f'<text x="{ix}" y="{by+47}" font-family="{MONO}" font-size="17" fill="#C7C7CC" letter-spacing="2">ID 04 · 24 BINDINGER</text>')
+svg.append(f'<text x="{ix}" y="{by+47}" font-family="{MONO}" font-size="17" fill="#C7C7CC" letter-spacing="2">ID 04 · 24 BINDINGS</text>')
 bw, bh = 400, 78
 bx = ix + iw - bw
 svg.append(f'<rect x="{bx}" y="{by+6}" width="{bw}" height="{bh}" rx="18" fill="{BLUE}" opacity="0.25"/>')
 svg.append(f'<rect x="{bx}" y="{by}" width="{bw}" height="{bh}" rx="18" fill="url(#btn)"/>')
-svg.append(f'<text x="{bx+bw/2}" y="{by+bh/2+9}" text-anchor="middle" font-family="{SANS}" font-size="27" fill="#FFFFFF" font-weight="bold">Skriv til tastatur</text>')
+svg.append(f'<text x="{bx+bw/2}" y="{by+bh/2+9}" text-anchor="middle" font-family="{SANS}" font-size="27" fill="#FFFFFF" font-weight="bold">Write to keyboard</text>')
 gx2 = bx - 250
 svg.append(f'<rect x="{gx2}" y="{by}" width="220" height="{bh}" rx="18" fill="#FFFFFF" stroke="#D6D6DA" stroke-width="1.5"/>')
-svg.append(f'<text x="{gx2+110}" y="{by+bh/2+9}" text-anchor="middle" font-family="{SANS}" font-size="26" fill="{GRAY2}">Tilbakestill</text>')
+svg.append(f'<text x="{gx2+110}" y="{by+bh/2+9}" text-anchor="middle" font-family="{SANS}" font-size="26" fill="{GRAY2}">Reset</text>')
 
 # signature
-svg.append(f'<text x="{W-64}" y="{H-40}" text-anchor="end" font-family="{THIN}" font-size="20" fill="#C4C4C9" letter-spacing="6">TAKTIL STILLHET</text>')
+svg.append(f'<text x="{W-64}" y="{H-40}" text-anchor="end" font-family="{THIN}" font-size="20" fill="#C4C4C9" letter-spacing="6">TACTILE SILENCE</text>')
 
 svg.append('</svg>')
 doc = "\n".join(svg)

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 
 
 ACTIONS = ("left", "press", "right")
-ACTION_LABELS = {"left": "vri venstre", "press": "trykk", "right": "vri høyre"}
+ACTION_LABELS = {"left": "turn left", "press": "press", "right": "turn right"}
 
 MODEL_12_4 = "xzkj_12key_4knob"
 MODEL_16_3 = "xzkj_16key_3knob"
@@ -37,7 +37,7 @@ class Model:
             return self.knob_ids[int(number)][ACTIONS.index(action)]
         if target.startswith("key"):
             return self.key_ids[int(target[3:])]
-        raise ValueError(f"Ukjent mål: {target!r}")
+        raise ValueError(f"Unknown target: {target!r}")
 
 
 MODELS = {
@@ -77,7 +77,7 @@ def get(model_id: str | None = None) -> Model:
     try:
         return MODELS[model_id or DEFAULT_MODEL]
     except KeyError as exc:
-        raise ValueError(f"Ukjent enhetsmodell: {model_id!r}") from exc
+        raise ValueError(f"Unknown device model: {model_id!r}") from exc
 
 
 def all_targets(model_id: str | None = None):
@@ -88,9 +88,9 @@ def all_targets(model_id: str | None = None):
         for index, action in enumerate(ACTIONS):
             size = model.knob_sizes[n]
             out.append((f"knob{n}.{action}", ids[index],
-                        f"Knott {n} ({size}) — {ACTION_LABELS[action]}"))
+                        f"Knob {n} ({size}) - {ACTION_LABELS[action]}"))
     for n, key_id in model.key_ids.items():
-        out.append((f"key{n}", key_id, f"Tast {n}"))
+        out.append((f"key{n}", key_id, f"Key {n}"))
     return out
 
 

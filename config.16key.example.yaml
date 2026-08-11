@@ -1,5 +1,5 @@
-# Eksempel for XZKJ @XZKJ-16key_3knob (16 taster + 3 knotter).
-# Flash med: .venv/bin/python macroctl.py flash config.16key.example.yaml
+# Example configuration for XZKJ @XZKJ-16key_3knob (16 keys + 3 knobs).
+# Flash with: .venv/bin/python macroctl.py flash config.16key.example.yaml
 model: xzkj_16key_3knob
 layer: 1
 

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Les de rå HID-rapportene padden sender, så vi ser hva den faktisk gjør —
-i stedet for å gjette ut fra hva macOS gjør med dem.
+Read the raw HID reports sent by the pad to see what it actually does,
+rather than inferring it from macOS behavior.
 
-    .venv/bin/python research/sniff_hid.py [sekunder]
+    .venv/bin/python research/sniff_hid.py [seconds]
 """
 import sys
 import time
@@ -13,7 +13,7 @@ import hid
 VID, PID = 0x514C, 0x8850
 SECS = int(sys.argv[1]) if len(sys.argv) > 1 else 15
 
-# HID keyboard usage -> navn (det vi bryr oss om)
+# HID keyboard usage -> names we care about
 NAMES = {0x39: "CAPSLOCK", 0x7F: "MUTE", 0x80: "VOL+", 0x81: "VOL-",
          **{0x3A + i: f"F{i+1}" for i in range(12)},
          **{0x68 + i: f"F{i+13}" for i in range(12)},
@@ -26,12 +26,12 @@ def decode(d):
         return " ".join(f"{b:02x}" for b in d)
     mods = [MODS[i] for i in range(8) if d[0] & (1 << i)]
     keys = [NAMES.get(b, f"0x{b:02x}") for b in d[2:] if b]
-    return "+".join(mods + keys) if (mods or keys) else "(slipp)"
+    return "+".join(mods + keys) if (mods or keys) else "(release)"
 
 
 devs = [d for d in hid.enumerate(VID, PID) if d["usage_page"] != 0xFF00]
 if not devs:
-    print("Fant ingen input-grensesnitt.")
+    print("No input interfaces found.")
     raise SystemExit(1)
 
 opened = []
@@ -42,15 +42,15 @@ for d in devs:
         h.set_nonblocking(True)
         opened.append((d, h))
     except Exception as e:
-        print(f"kunne ikke åpne usage_page={d['usage_page']:#06x}: {e}")
+        print(f"could not open usage_page={d['usage_page']:#06x}: {e}")
 
 if not opened:
-    print("Fikk ikke åpnet noen input-grensesnitt.\n"
-          "macOS krever gjerne Inndataovervåking: Systeminnstillinger → Personvern\n"
-          "og sikkerhet → Inndataovervåking → legg til Terminal.")
+    print("Could not open any input interfaces.\n"
+          "macOS may require Input Monitoring: System Settings → Privacy & Security\n"
+          "→ Input Monitoring → add Terminal.")
     raise SystemExit(2)
 
-print(f"Lytter i {SECS}s på {len(opened)} grensesnitt. Bruk padden nå.\n", flush=True)
+print(f"Listening for {SECS}s on {len(opened)} interfaces. Use the pad now.\n", flush=True)
 end = time.time() + SECS
 seen = 0
 while time.time() < end:
@@ -68,4 +68,4 @@ while time.time() < end:
 
 for _, h in opened:
     h.close()
-print(f"\nFerdig — {seen} rapporter.")
+print(f"\nDone — {seen} reports.")

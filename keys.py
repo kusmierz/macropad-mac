@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Tastekart for macOS — virtuelle tastekoder, navn og visning.
+Key map for macOS — virtual key codes, names, and display labels.
 
-Ett sted for hele sannheten: hvilke taster finnes, hva heter de, hvordan ser de
-ut for brukeren, og hvordan oversettes et faktisk tastetrykk til en binding.
+One source of truth: available keys, their names, how they appear to users, and
+how an actual key press is translated into a binding.
 """
 
-# ── navn -> virtuell tastekode ──────────────────────────────────────────
+# ── name -> virtual key code ────────────────────────────────────────────
 LETTERS = {c: k for c, k in zip(
     "abcdefghijklmnopqrstuvwxyz",
     (0, 11, 8, 2, 14, 3, 5, 4, 34, 38, 40, 37, 46, 45, 31, 35, 12, 15,
@@ -48,7 +48,7 @@ BY_CODE = {v: k for k, v in VK.items()}
 
 MODS = ("cmd", "shift", "alt", "ctrl")
 
-# ── visning ─────────────────────────────────────────────────────────────
+# ── display ─────────────────────────────────────────────────────────────
 SYMBOL = {
     "cmd": "⌘", "shift": "⇧", "alt": "⌥", "ctrl": "⌃",
     "enter": "↩", "tab": "⇥", "space": "␣", "backspace": "⌫", "delete": "⌦",
@@ -59,7 +59,7 @@ SYMBOL = {
     "backslash": "\\",
 }
 
-# Grupper til tastevelgeren i grensesnittet
+# Groups for the key picker in the interface
 CATEGORIES = [
     ("letters", "Letters", "Bokstaver", sorted(LETTERS)),
     ("digits", "Numbers", "Tall", [str(d) for d in range(10)]),
@@ -83,8 +83,8 @@ def display(spec: str) -> str:
 
 
 def from_event(keycode: int, flags: int, masks: dict) -> str | None:
-    """Et faktisk tastetrykk -> bindingstekst. Returnerer None for rene
-    modifikatortrykk (de gir ingen mening alene)."""
+    """Convert an actual key press to binding text. Return None for modifier-only
+    presses, which have no meaning on their own."""
     name = BY_CODE.get(keycode)
     if not name:
         return None

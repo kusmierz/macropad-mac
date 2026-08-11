@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Makropad — grafisk konfigurator.
+Makropad — graphical configurator.
 
-Redigerer profiles.yaml: hva hver tast og knott gjør, per app. Daemonen plukker opp
-endringene med det samme du lagrer.
+Edits profiles.yaml: what each key and knob does, per app. The daemon picks up
+changes as soon as you save.
 
-    .venv/bin/python app.py        # åpner http://127.0.0.1:8777
+    .venv/bin/python app.py        # opens http://127.0.0.1:8777
 """
 import http.server
 import json
@@ -30,7 +30,7 @@ EXAMPLE = paths.EXAMPLE
 
 
 def running_apps():
-    """Apper med vindu — til app-velgeren."""
+    """Applications with windows, for the app picker."""
     try:
         from AppKit import NSWorkspace
         out = []
@@ -45,7 +45,7 @@ def running_apps():
 def flash_signals(model_id=None):
     model_id = model_id or store.active_model(store.load())
     if model_id is None:
-        raise ValueError("Velg enhetsmodell før padden klargjøres")
+        raise ValueError("Choose a device model before preparing the pad")
     plan = []
     for t in signals.targets(model_id):
         parts = signals.spec_for(t, model_id).split("+")
@@ -132,7 +132,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             try:
                 model_id = data.get("active_model")
                 if model_id is not None and model_id not in device.MODELS:
-                    raise ValueError(f"Ukjent enhetsmodell: {model_id!r}")
+                    raise ValueError(f"Unknown device model: {model_id!r}")
                 self._json({"ok": True, "doc": store.save(data)})
             except Exception as e:
                 self._json({"ok": False, "error": str(e)})
@@ -175,9 +175,9 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
         url = f"http://127.0.0.1:{PORT}"
-        print(f"Makropad-konfigurator kjører på {url}  (Ctrl+C for å avslutte)")
+        print(f"Makropad configurator is running at {url}  (Ctrl+C to quit)")
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\nAvsluttet.")
+            print("\nStopped.")
