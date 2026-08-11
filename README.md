@@ -1,7 +1,8 @@
 # macropad-mac
 
-macOS configurator for the AliExpress **XZKJ 12-key / 4-knob** macropad (USB `514C:8850`) —
-a device that only ships with Chinese Windows software.
+macOS configurator for the AliExpress **XZKJ 12-key / 4-knob** macropad (USB `514C:8850`).
+The same USB ID is also used by a different **4×4-key / 3-knob** product, so the ID alone
+does not identify the physical layout.
 
 The protocol was reverse-engineered from scratch for this variant. The configuration is stored
 in the keyboard's own memory, so the software is only needed when you change the layout.
@@ -16,6 +17,10 @@ protruding lobe at the top right. It is sold under many names. Check the USB ID 
 ```bash
 hidutil list | grep 514c
 ```
+
+The vendor's [support page for the mini-keyboard software](https://sikaicase.com/blogs/support/setting-for-software)
+lists Windows software and a separate macOS download. The macOS software does not work as
+expected with this device, so this project provides the working macOS configurator instead.
 
 ## Getting started
 
