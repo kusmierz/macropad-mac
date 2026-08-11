@@ -1,29 +1,30 @@
 #!/usr/bin/env python3
 """
-Profillager — én kilde til sannhet for profiles.yaml.
+Profile store — the single source of truth for profiles.yaml.
 
-Både konfiguratoren (app.py) og daemonen (daemon.py) leser samme fil, så skjemaet
-må defineres ett sted. Ellers driver de fra hverandre.
+Both the configurator (app.py) and daemon (daemon.py) read the same file, so the
+schema must be defined in one place. Otherwise, they drift apart.
 
-Skjema:
+Schema:
 
-    active: "Profil 1"
+    active: "Profile 1"
     profiles:
-      "Profil 1": {default: {...}, apps: {...}}
-      "Profil 2": {default: {},    apps: {}}
-      "Profil 3": {default: {},    apps: {}}
+      "Profile 1": {default: {...}, apps: {...}}
+      "Profile 2": {default: {},    apps: {}}
+      "Profile 3": {default: {},    apps: {}}
 
-Hver profil er et komplett sett: en standardprofil pluss app-overstyringer. Du
-bytter aktiv profil i menylinja; daemonen dispatcher fra den aktive.
+Each profile is a complete set: a default profile plus app overrides. Switch the
+active profile in the menu bar; the daemon dispatches from the active one.
 
-Gammelt format ({default, apps} på toppnivå) migreres til «Profil 1» ved lasting.
+The legacy format ({default, apps} at the top level) migrates to “Profile 1” on load.
 """
 import yaml
 
 import paths
 
-# Faste navn i v1 — tre profiler, alltid til stede.
-NAMES = ["Profil 1", "Profil 2", "Profil 3"]
+# Fixed v1 names — three profiles, always present.
+NAMES = ["Profile 1", "Profile 2", "Profile 3"]
+LEGACY_NAMES = {"Profil 1": "Profile 1", "Profil 2": "Profile 2", "Profil 3": "Profile 3"}
 
 
 def _blank():
@@ -31,33 +32,38 @@ def _blank():
 
 
 def normalize(doc):
-    """Tving fram et gyldig skjema. Idempotent — trygg å kjøre på alt."""
+    """Enforce a valid schema. Idempotent — safe to run on any input."""
     doc = doc or {}
 
-    # Migrer gammelt enkeltprofil-format: {default, apps} uten "profiles".
+    # Migrate the legacy single-profile format: {default, apps} without "profiles".
     if "profiles" not in doc:
         legacy = {"default": doc.get("default") or {},
                   "apps": doc.get("apps") or {}}
         doc = {"active": NAMES[0], "profiles": {NAMES[0]: legacy}}
 
     profs = doc.get("profiles") or {}
-    # Garanter at de tre profilene finnes.
+    for legacy, current in LEGACY_NAMES.items():
+        if legacy in profs and current not in profs:
+            profs[current] = profs.pop(legacy)
+        if doc.get("active") == legacy:
+            doc["active"] = current
+    # Ensure all three profiles exist.
     for name in NAMES:
         profs.setdefault(name, _blank())
-    # Garanter default+apps i hver.
+    # Ensure default+apps in each profile.
     for prof in profs.values():
         prof.setdefault("default", {})
         prof.setdefault("apps", {})
     doc["profiles"] = profs
 
-    # active må peke på en profil som finnes.
+    # active must point to an existing profile.
     if doc.get("active") not in profs:
         doc["active"] = NAMES[0]
     return doc
 
 
 def load():
-    """Les profiles.yaml, normalisert. Lager fila fra eksempelet ved behov."""
+    """Read normalized profiles.yaml. Create it from the example when necessary."""
     path = paths.ensure_profiles()
     with open(path) as f:
         doc = yaml.safe_load(f) or {}
@@ -65,10 +71,10 @@ def load():
 
 
 def save(doc):
-    """Skriv normalisert doc til disk. Returnerer det som ble skrevet."""
+    """Write normalized document to disk. Return the written document."""
     doc = normalize(doc)
     with open(paths.PROFILES, "w") as f:
-        # profiles før active leser dårlig; behold active øverst.
+        # profiles before active is harder to read; keep active first.
         ordered = {"active": doc["active"], "profiles": doc["profiles"]}
         yaml.safe_dump(ordered, f, allow_unicode=True, sort_keys=False,
                        default_flow_style=False)
@@ -76,13 +82,13 @@ def save(doc):
 
 
 def active_map(doc):
-    """{default, apps} for den aktive profilen."""
+    """Return {default, apps} for the active profile."""
     doc = normalize(doc)
     return doc["profiles"][doc["active"]]
 
 
 def set_active(name):
-    """Bytt aktiv profil på disk. Ignorerer ukjente navn. Returnerer doc."""
+    """Change the active profile on disk. Ignore unknown names and return the document."""
     doc = load()
     if name in doc["profiles"]:
         doc["active"] = name

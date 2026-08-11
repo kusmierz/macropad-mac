@@ -1,16 +1,16 @@
-# Eksempelkonfig for XZKJ-makropad (12 taster + 4 knotter)
-# Flash med: .venv/bin/python macroctl.py flash config.example.yaml
+# Example configuration for the XZKJ macropad (12 keys + 4 knobs)
+# Flash with: .venv/bin/python macroctl.py flash config.example.yaml
 
 layer: 1
 
-# 4 rader x 3 kolonner, slik tastaturet ligger foran deg (rad 1 = øverst)
+# 4 rows x 3 columns, as the keyboard sits in front of you (row 1 = top)
 keys:
   - ["cmd+c",       "cmd+v",       "cmd+x"]
   - ["cmd+z",       "cmd+shift+z", "cmd+a"]
   - ["cmd+tab",     "media:play",  "cmd+w"]
   - ["cmd+shift+4", "f13",         "f14"]
 
-# Knotter 1-4: left = vri mot klokka, press = trykk, right = vri med klokka
+# Knobs 1-4: left = counter-clockwise, press = push, right = clockwise
 knobs:
   1: {left: "media:volumedown", press: "media:mute", right: "media:volumeup"}
   2: {left: "media:prev",       press: "media:play", right: "media:next"}

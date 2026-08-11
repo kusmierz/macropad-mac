@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Makropad — grafisk konfigurator.
+Makropad — graphical configurator.
 
-Redigerer profiles.yaml: hva hver tast og knott gjør, per app. Daemonen plukker opp
-endringene med det samme du lagrer.
+Edits profiles.yaml: what each key and knob does, per app. The daemon picks up
+changes as soon as you save.
 
-    .venv/bin/python app.py        # åpner http://127.0.0.1:8777
+    .venv/bin/python app.py        # opens http://127.0.0.1:8777
 """
 import http.server
 import json
@@ -30,7 +30,7 @@ EXAMPLE = paths.EXAMPLE
 
 
 def running_apps():
-    """Apper med vindu — til app-velgeren."""
+    """Applications with windows, for the app picker."""
     try:
         from AppKit import NSWorkspace
         out = []
@@ -91,7 +91,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         elif self.path == "/api/state":
             doc = store.load()
             self._json({
-                "doc": doc,                       # {active, profiles:{navn:{default,apps}}}
+                "doc": doc,                       # {active, profiles:{name:{default,apps}}}
                 "profileNames": store.NAMES,
                 "targets": signals.TARGETS,
                 "media": sorted(actions.NX),
@@ -159,9 +159,9 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
         url = f"http://127.0.0.1:{PORT}"
-        print(f"Makropad-konfigurator kjører på {url}  (Ctrl+C for å avslutte)")
+        print(f"Makropad configurator is running at {url}  (Ctrl+C to quit)")
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\nAvsluttet.")
+            print("\nStopped.")

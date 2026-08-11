@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Klargjør padden for daemonen: flash alle 24 mål til hvert sitt signal.
+Prepare the pad for the daemon: flash all 24 targets with unique signals.
 
-Dette gjøres én gang. Etterpå styres alt fra profiles.yaml — padden trenger aldri
-reflashes selv om du endrer hva tastene gjør.
+Do this once. Afterwards, profiles.yaml controls everything — the pad never needs
+to be reflashed when you change what keys do.
 
     .venv/bin/python setup_daemon.py          # flash
-    .venv/bin/python setup_daemon.py --dry    # bare vis hva som ville skjedd
+    .venv/bin/python setup_daemon.py --dry    # only show what would happen
 """
 import sys
 
@@ -15,7 +15,7 @@ import xzkj
 
 
 def build(target):
-    """Signalspesifikasjon -> (delay, kode)-oppføringer for protokollen."""
+    """Signal specification -> (delay, code) entries for the protocol."""
     parts = signals.spec_for(target).split("+")
     mods, key = parts[:-1], parts[-1]
     entries = [(0, xzkj.MODIFIERS[m]) for m in mods]
@@ -29,9 +29,9 @@ def main():
             for t in signals.TARGETS]
 
     for t, kid, spec, entries in plan:
-        print(f"  {t:16s}  id {kid:2d}  ->  {spec:26s} ({len(entries)} trykk)")
+        print(f"  {t:16s}  id {kid:2d}  ->  {spec:26s} ({len(entries)} presses)")
     if dry:
-        print(f"\n{len(plan)} bindinger — ingenting skrevet (--dry).")
+        print(f"\n{len(plan)} bindings — nothing written (--dry).")
         return
 
     h = xzkj.open_vendor_interface()
@@ -41,8 +41,8 @@ def main():
         xzkj.finish(h)
     finally:
         h.close()
-    print(f"\n{len(plan)} signaler skrevet til padden.")
-    print("Start daemonen:  .venv/bin/python daemon.py")
+    print(f"\n{len(plan)} signals written to the pad.")
+    print("Start the daemon:  .venv/bin/python daemon.py")
 
 
 if __name__ == "__main__":

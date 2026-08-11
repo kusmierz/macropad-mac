@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Handlinger daemonen kan utføre. Dette er stedet å legge til nye.
+Actions the daemon can run. Add new actions here.
 
-Handlingssyntaks i profiles.yaml:
+Action syntax in profiles.yaml:
     media:playpause     media:next  media:prev  media:mute
     media:volumeup      media:volumedown
-    key:cmd+shift+4     send en tastekombinasjon
-    app:Spotify         aktiver (eller start) en app
-    url:https://…       åpne en URL
-    shell:say hei       kjør en kommando
-    none                gjør ingenting (svelg signalet)
+    key:cmd+shift+4     send a key combination
+    app:Spotify         activate (or launch) an app
+    url:https://…       open a URL
+    shell:say hello     run a command
+    none                do nothing (swallow the signal)
 """
 import subprocess
 
@@ -18,15 +18,15 @@ from AppKit import NSWorkspace
 
 import keys
 
-# NX_KEYTYPE-koder for systemets media-taster
+# NX_KEYTYPE codes for the system media keys
 NX = {
     "playpause": 16, "next": 17, "prev": 18, "fast": 19, "rewind": 20,
     "mute": 7, "volumeup": 0, "volumedown": 1,
     "brightnessup": 2, "brightnessdown": 3,
 }
 
-# Virtuelle tastekoder — felles kart, se keys.py
-VK = {**keys.VK, "period": keys.VK["dot"]}   # 'period' er et vanlig alias
+# Virtual key codes — shared map; see keys.py
+VK = {**keys.VK, "period": keys.VK["dot"]}   # 'period' is a common alias
 
 MODMASK = {
     "cmd": Quartz.kCGEventFlagMaskCommand,
@@ -40,7 +40,7 @@ MODMASK = {
 def _media(name):
     code = NX.get(name)
     if code is None:
-        raise ValueError(f"Ukjent media-handling: {name}")
+        raise ValueError(f"Unknown media action: {name}")
     for down in (True, False):
         data = (code << 16) | ((0xA if down else 0xB) << 8)
         ev = Quartz.NSEvent.otherEventWithType_location_modifierFlags_timestamp_windowNumber_context_subtype_data1_data2_(
@@ -52,11 +52,11 @@ def _key(spec):
     parts = [p.strip().lower() for p in spec.split("+")]
     mods, key = parts[:-1], parts[-1]
     if key not in VK:
-        raise ValueError(f"Ukjent tast: {key}")
+        raise ValueError(f"Unknown key: {key}")
     flags = 0
     for m in mods:
         if m not in MODMASK:
-            raise ValueError(f"Ukjent modifikator: {m}")
+            raise ValueError(f"Unknown modifier: {m}")
         flags |= MODMASK[m]
     for down in (True, False):
         ev = Quartz.CGEventCreateKeyboardEvent(None, VK[key], down)
@@ -69,12 +69,12 @@ def _app(name):
 
 
 def run(action: str):
-    """Utfør en handling. Kaster ved ugyldig syntaks."""
+    """Run an action. Raises on invalid syntax."""
     action = (action or "").strip()
     if not action or action == "none":
         return
     if ":" not in action:
-        raise ValueError(f"Handling mangler type: {action!r}")
+        raise ValueError(f"Action is missing a type: {action!r}")
     kind, arg = action.split(":", 1)
     kind, arg = kind.strip().lower(), arg.strip()
     if kind == "media":
@@ -88,30 +88,30 @@ def run(action: str):
     elif kind == "shell":
         subprocess.Popen(arg, shell=True)
     else:
-        raise ValueError(f"Ukjent handlingstype: {kind!r}")
+        raise ValueError(f"Unknown action type: {kind!r}")
 
 
 def validate(action: str):
-    """Sjekk syntaks uten å utføre."""
+    """Check syntax without running the action."""
     action = (action or "").strip()
     if not action or action == "none":
         return
     if ":" not in action:
-        raise ValueError(f"Handling mangler type: {action!r}")
+        raise ValueError(f"Action is missing a type: {action!r}")
     kind, arg = action.split(":", 1)
     kind, arg = kind.strip().lower(), arg.strip()
     if kind == "media":
         if arg.lower() not in NX:
-            raise ValueError(f"Ukjent media-handling: {arg} (gyldige: {', '.join(NX)})")
+            raise ValueError(f"Unknown media action: {arg} (valid: {', '.join(NX)})")
     elif kind == "key":
         parts = [p.strip().lower() for p in arg.split("+")]
         if parts[-1] not in VK:
-            raise ValueError(f"Ukjent tast: {parts[-1]}")
+            raise ValueError(f"Unknown key: {parts[-1]}")
         for m in parts[:-1]:
             if m not in MODMASK:
-                raise ValueError(f"Ukjent modifikator: {m}")
+                raise ValueError(f"Unknown modifier: {m}")
     elif kind not in ("app", "url", "shell"):
-        raise ValueError(f"Ukjent handlingstype: {kind!r}")
+        raise ValueError(f"Unknown action type: {kind!r}")
 
 
 def frontmost() -> str:

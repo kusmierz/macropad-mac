@@ -1,9 +1,9 @@
 #!/bin/bash
-# Bygg Makropad.app og Makropad.dmg — selvstendig, med Python innebygd.
+# Build Makropad.app and Makropad.dmg — standalone, with embedded Python.
 #
 #   ./build.sh
 #
-# Resultat: dist/Makropad.dmg
+# Output: dist/Makropad.dmg
 set -euo pipefail
 cd "$(dirname "$0")"
 
@@ -11,12 +11,12 @@ APP="Makropad"
 VENV=".venv"
 PY="$VENV/bin/python"
 
-echo "▸ Avhengigheter"
+echo "▸ Dependencies"
 [ -d "$VENV" ] || python3 -m venv "$VENV"
 "$VENV/bin/pip" install -q --upgrade pip
 "$VENV/bin/pip" install -q -r requirements.txt pyinstaller rumps
 
-echo "▸ Ikoner"
+echo "▸ Icons"
 if [ ! -f build_assets/Makropad.icns ]; then
   if "$PY" -c "import cairosvg" 2>/dev/null; then
     (cd design && "../$PY" render_icons.py >/dev/null)
@@ -26,11 +26,11 @@ if [ ! -f build_assets/Makropad.icns ]; then
           build_assets/Makropad.iconset/icon_1024x1024.png
     iconutil -c icns build_assets/Makropad.iconset -o build_assets/Makropad.icns
   else
-    echo "  (ingen ikoner — bygger uten. Kjør design/render_icons.py med cairosvg installert.)"
+    echo "  (no icons — building without them. Run design/render_icons.py with cairosvg installed.)"
   fi
 fi
 
-echo "▸ Rydder"
+echo "▸ Cleaning"
 rm -rf build dist "$APP.spec"
 
 echo "▸ PyInstaller"
@@ -72,35 +72,35 @@ echo "▸ Info.plist"
 /usr/libexec/PlistBuddy -c "Set :CFBundleShortVersionString 1.0" "$PLIST" 2>/dev/null || true
 /usr/libexec/PlistBuddy -c "Add :NSHumanReadableCopyright string 'MIT'" "$PLIST" 2>/dev/null || true
 
-echo "▸ Signerer"
-# Et ekte Developer ID gjor at macOS kjenner appen igjen pa tvers av bygginger:
-# Tilgjengelighet knyttes til bundle-ID + team-ID, ikke til en hash som endrer
-# seg hver gang. Uten det (ad-hoc) ma du huke av pa nytt ved hver eneste bygging.
+echo "▸ Signing"
+# A real Developer ID lets macOS recognize the app across builds. Accessibility is
+# tied to bundle ID + team ID, not a hash that changes every time. Without it
+# (ad-hoc), permission must be enabled again for every build.
 IDENTITY=$(security find-identity -v -p codesigning 2>/dev/null \
   | grep "Developer ID Application" | head -1 | sed 's/.*"\(.*\)"/\1/')
 if [ -z "$IDENTITY" ]; then
   IDENTITY="-"
-  echo "  Fant ingen Developer ID — signerer ad-hoc."
-  echo "  Merk: da ma Tilgjengelighet hukes av pa nytt etter hver bygging."
+  echo "  No Developer ID found — signing ad-hoc."
+  echo "  Note: Accessibility must be enabled again after every build."
 else
   echo "  $IDENTITY"
 fi
 codesign --force --deep --sign "$IDENTITY" --timestamp=none "dist/$APP.app" 2>&1 \
   | grep -v "replacing existing signature" || true
-codesign --verify --strict "dist/$APP.app" && echo "  signatur OK"
+codesign --verify --strict "dist/$APP.app" && echo "  signature OK"
 
 echo "▸ DMG"
 STAGE=$(mktemp -d)
 cp -R "dist/$APP.app" "$STAGE/"
-ln -s /Applications "$STAGE/Programmer"
-cat > "$STAGE/Les meg.txt" <<'EOF'
-Makropad — konfigurator for XZKJ 12-key/4-knob makropad
+ln -s /Applications "$STAGE/Applications"
+cat > "$STAGE/Read Me.txt" <<'EOF'
+Makropad — configurator for the XZKJ 12-key/4-knob macropad
 
-1. Dra Makropad til Programmer.
-2. Start den. Første gang: høyreklikk → Åpne (appen er ikke signert av Apple).
-3. Gi Tilgjengelighet-tilgang når den spør — appen må lese padden for å
-   oversette tastene.
-4. Velg «Klargjør padden» i menylinja. Én gang, så er du i gang.
+1. Drag Makropad to Applications.
+2. Start it. The first time: right-click → Open (the app is not signed by Apple).
+3. Grant Accessibility permission when prompted — the app needs to read the pad
+   to translate its key presses.
+4. Choose “Prepare pad” in the menu bar. Once is all it takes.
 
 https://github.com/GaimsDevSoftware/macropad-mac
 EOF

@@ -1,43 +1,43 @@
-# Profiler for daemonen — hva hver tast og knott gjør, per app.
+# Profiles for the daemon — what each key and knob does, per app.
 #
-# Kopier til profiles.yaml og rediger. Daemonen laster filen på nytt automatisk
-# når du lagrer; du trenger ikke starte den om igjen.
+# Copy this to profiles.yaml and edit it. The daemon reloads the file automatically
+# when you save, so you do not need to restart it.
 #
-# Mål:      key5 … key16     (tastene, se README-illustrasjonen)
-#           knob1.left / knob1.press / knob1.right   (og knob2–4)
+# Targets:  key5 … key16     (keys; see the README illustration)
+#           knob1.left / knob1.press / knob1.right   (and knobs 2–4)
 #
-# Handlinger:
+# Actions:
 #   media:playpause  media:next  media:prev  media:mute
 #   media:volumeup   media:volumedown
-#   key:cmd+shift+4  — send en tastekombinasjon
-#   app:Spotify      — aktiver eller start en app
-#   url:https://…    — åpne en URL
-#   shell:…          — kjør en kommando
-#   none             — svelg signalet, gjør ingenting
+#   key:cmd+shift+4  — send a key combination
+#   app:Spotify      — activate or launch an app
+#   url:https://…    — open a URL
+#   shell:…          — run a command
+#   none             — swallow the signal; do nothing
 
 default:
-  # Knott 4 (stor) — volum, slik du ville ha det
+  # Knob 4 (large) — volume
   knob4.left:   media:volumedown
   knob4.press:  media:mute
   knob4.right:  media:volumeup
 
-  # Knott 3 (medium) — mediatransport. Dette er funksjonene padden ikke klarer
-  # på egen hånd; daemonen sender dem via macOS' egne media-API-er.
+  # Knob 3 (medium) — media transport. The pad cannot handle these actions itself;
+  # the daemon sends them through macOS media APIs.
   knob3.left:   media:prev
   knob3.press:  media:playpause
   knob3.right:  media:next
 
-  # Knott 2 (liten) — bla i tekst
+  # Knob 2 (small) — scroll text
   knob2.left:   key:up
   knob2.press:  key:enter
   knob2.right:  key:down
 
-  # Knott 1 (liten) — zoom
+  # Knob 1 (small) — zoom
   knob1.left:   key:cmd+minus
   knob1.press:  key:cmd+0
   knob1.right:  key:cmd+shift+equal
 
-  # Tastene
+  # Keys
   key5:  key:cmd+c
   key6:  key:cmd+v
   key7:  key:cmd+x
@@ -51,22 +51,21 @@ default:
   key15: url:https://github.com/GaimsDevSoftware/macropad-mac
   key16: key:cmd+space
 
-# App-avhengige overstyringer. Nøkkelen matcher mot bundle-ID-en til appen som
-# er i front (delstreng, ikke versalfølsom). Alt du ikke overstyrer faller
-# tilbake til «default».
+# App-specific overrides. The key matches the bundle ID of the frontmost app
+# (a case-insensitive substring). Any action not overridden falls back to default.
 apps:
   com.spotify.client:
     knob3.left:  media:prev
     knob3.right: media:next
-    key5:        key:cmd+shift+left     # hopp bakover
-    key7:        key:cmd+shift+right    # hopp forover
+    key5:        key:cmd+shift+left     # jump backward
+    key7:        key:cmd+shift+right    # jump forward
 
   com.apple.finder:
-    key12: key:cmd+shift+n              # ny mappe
-    key13: key:cmd+delete               # legg i papirkurven
+    key12: key:cmd+shift+n              # new folder
+    key13: key:cmd+delete               # move to Trash
 
   com.microsoft.VSCode:
-    key5:  key:cmd+shift+p              # kommandopalett
+    key5:  key:cmd+shift+p              # command palette
     key6:  key:ctrl+grave               # terminal
     knob1.left:  key:cmd+minus
     knob1.right: key:cmd+shift+equal

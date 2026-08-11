@@ -1,18 +1,18 @@
 #!/usr/bin/env python3
 """
-Tilgang til å lese tastetrykk på macOS.
+Access to read key presses on macOS.
 
-En aktiv event tap krever to tillatelser:
+An active event tap requires two permissions:
 
-  Inndataovervåking  (kTCCServiceListenEvent)  — å se hendelsene
-  Tilgjengelighet    (kTCCServiceAccessibility) — å endre/svelge dem
+  Input Monitoring  (kTCCServiceListenEvent)  — to see events
+  Accessibility     (kTCCServiceAccessibility) — to change or swallow them
 
-Inndataovervåking kan bes om via Quartz. Tilgjengelighet krever
-AXIsProcessTrustedWithOptions, som pyobjc bare eksponerer gjennom
-ApplicationServices — en modul PyInstaller ikke får med seg. Vi laster derfor
-rammeverket rett fra systemet med ctypes. Det virker likt fra kildekode og fra
-en buntet .app, og er den eneste kallet som faktisk *legger appen inn i lista*
-og viser Apples egen dialog.
+Quartz can request Input Monitoring. Accessibility requires
+AXIsProcessTrustedWithOptions, which pyobjc exposes only through
+ApplicationServices — a module PyInstaller does not include. We therefore load
+the framework directly from the system with ctypes. This works from source and a
+bundled .app, and is the only call that actually adds the app to the list and
+displays Apple's own dialog.
 """
 import ctypes
 import ctypes.util
@@ -42,8 +42,8 @@ def _cfstr(s: str):
 
 
 def accessibility(prompt=False) -> bool:
-    """Har vi Tilgjengelighet? Med prompt=True viser macOS dialogen og legger
-    appen inn i lista — det er den eneste måten den havner der av seg selv."""
+    """Check Accessibility. With prompt=True, macOS shows its dialog and adds
+    the app to the list — the only way it can add itself."""
     if not prompt:
         return bool(_lib.AXIsProcessTrusted())
     key = _cfstr("AXTrustedCheckOptionPrompt")
@@ -69,17 +69,17 @@ def input_monitoring(prompt=False) -> bool:
 
 
 def status() -> dict:
-    return {"tilgjengelighet": accessibility(),
-            "inndataovervåking": bool(Quartz.CGPreflightListenEventAccess())}
+    return {"accessibility": accessibility(),
+            "input_monitoring": bool(Quartz.CGPreflightListenEventAccess())}
 
 
 def have_all() -> bool:
     s = status()
-    return s["tilgjengelighet"] and s["inndataovervåking"]
+    return s["accessibility"] and s["input_monitoring"]
 
 
 def request_all() -> bool:
-    """Be om begge. Viser Apples dialoger og legger appen inn i begge listene."""
+    """Request both permissions, showing Apple's dialogs and adding the app to both lists."""
     input_monitoring(prompt=True)
     accessibility(prompt=True)
     return have_all()

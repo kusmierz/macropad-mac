@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Hvor ting ligger.
+File locations.
 
-Når appen kjører fra en .app-bundle er koden skrivebeskyttet, så brukerens
-konfigurasjon kan ikke ligge ved siden av den. Den hører hjemme i
+When the app runs from a .app bundle, its code is read-only, so the user's
+configuration cannot sit beside it. It belongs in
 ~/Library/Application Support/Makropad/.
 
-Kjører vi fra kildekoden (utvikling), brukes prosjektmappa — da slipper man å
-lete etter filene mens man jobber.
+When running from source (development), use the project directory so the files
+are easy to find while working.
 """
 import os
 import shutil
@@ -26,13 +26,13 @@ EXAMPLE = os.path.join(BUNDLE, "profiles.example.yaml")
 
 
 def resource(name):
-    """Fil som følger med programmet (ui.html, ikoner, eksempelprofil)."""
+    """A file bundled with the application (ui.html, icons, example profile)."""
     p = os.path.join(BUNDLE, name)
     return p if os.path.exists(p) else None
 
 
 def ensure_profiles():
-    """Sørg for at det finnes en profiles.yaml å jobbe mot. Returnerer stien."""
+    """Ensure a profiles.yaml exists to work with. Return its path."""
     os.makedirs(DATA, exist_ok=True)
     if not os.path.exists(PROFILES) and os.path.exists(EXAMPLE):
         shutil.copy(EXAMPLE, PROFILES)
