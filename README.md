@@ -26,7 +26,7 @@ expected with this device, so this project provides the working macOS configurat
 
 ```bash
 python3 -m venv .venv
-.venv/bin/pip install hidapi pyyaml pyobjc-framework-Quartz pyobjc-framework-Cocoa
+.venv/bin/pip install -r requirements.txt
 .venv/bin/python app.py          # opens http://127.0.0.1:8777
 ```
 
