@@ -5,6 +5,11 @@ model: xzkj_12key_4knob
 
 layer: 1
 
+# Describe how the pad is positioned. Use left/right for horizontal pads and
+# top/bottom for vertical pads.
+orientation: horizontal
+knobs_location: right
+
 # 4 rows x 3 columns, as the keyboard sits in front of you (row 1 = top)
 keys:
   - ["cmd+c",       "cmd+v",       "cmd+x"]
@@ -12,7 +17,8 @@ keys:
   - ["cmd+tab",     "media:play",  "cmd+w"]
   - ["cmd+shift+4", "f13",         "f14"]
 
-# Knobs 1-4: left = counter-clockwise, press = push, right = clockwise
+# Knobs are numbered top-to-bottom on the left/right edge. left =
+# counter-clockwise, press = push, right = clockwise.
 knobs:
   1: {left: "media:volumedown", press: "media:mute", right: "media:volumeup"}
   2: {left: "media:prev",       press: "media:play", right: "media:next"}
