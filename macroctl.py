@@ -23,11 +23,43 @@ import yaml
 import device
 import xzkj
 
-def key_pos_to_id(row: int, col: int, model_id: str = device.DEFAULT_MODEL) -> int:
-    """Return the selected model's ID for a visual row/column position."""
+def layout_position(row: int, col: int, model, orientation: str, knobs_location: str):
+    """Return the raw matrix position for a key in the configured layout."""
+    valid_locations = {
+        "horizontal": {"left", "right"},
+        "vertical": {"top", "bottom"},
+    }
+    if orientation not in valid_locations:
+        raise ValueError("'orientation' must be 'horizontal' or 'vertical'")
+    if knobs_location not in valid_locations[orientation]:
+        allowed = " or ".join(sorted(valid_locations[orientation]))
+        raise ValueError(
+            f"'knobs_location' must be {allowed!r} when orientation is {orientation!r}"
+        )
+
+    if orientation == "horizontal":
+        return ((row, col) if knobs_location == "right"
+                else (model.rows + 1 - row, model.columns + 1 - col))
+    if knobs_location == "top":
+        return col, model.columns + 1 - row
+    return model.rows + 1 - col, row
+
+
+def key_pos_to_id(row: int, col: int, model_id: str = device.DEFAULT_MODEL,
+                  orientation: str = "horizontal", knobs_location: str = "right") -> int:
+    """Return the selected model's ID for a key in the configured layout."""
     model = device.get(model_id)
+    row, col = layout_position(row, col, model, orientation, knobs_location)
     index = (row - 1) * model.columns + (col - 1)
     return model.key_ids[list(model.key_ids)[index]]
+
+
+def knob_number(number: int, model, orientation: str, knobs_location: str) -> int:
+    """Return the raw knob number for the configured layout orientation."""
+    layout_position(1, 1, model, orientation, knobs_location)
+    if knobs_location in {"left", "top"}:
+        return len(model.knob_ids) + 1 - number
+    return number
 
 
 def parse_binding(spec: str):
@@ -81,6 +113,9 @@ def load_config(path: str):
     model_id = cfg.get("model", device.DEFAULT_MODEL)
     model = device.get(model_id)
     layer = int(cfg.get("layer", 1))
+    orientation = str(cfg.get("orientation", "horizontal")).lower()
+    knobs_location = str(cfg.get("knobs_location", "right")).lower()
+    layout_position(1, 1, model, orientation, knobs_location)
     bindings = []  # (key_id, description, parsed)
 
     rows = cfg.get("keys", [])
@@ -92,13 +127,13 @@ def load_config(path: str):
         for c, spec in enumerate(row, 1):
             parsed = parse_binding(spec) if spec is not None else None
             if parsed:
-                bindings.append((key_pos_to_id(r, c, model_id), f"key row{r}/col{c} = {spec!r}", parsed))
+                bindings.append((key_pos_to_id(r, c, model_id, orientation, knobs_location), f"key row{r}/col{c} = {spec!r}", parsed))
 
     for knob_no, actions in (cfg.get("knobs") or {}).items():
         knob_no = int(knob_no)
         if knob_no not in model.knob_ids:
             raise ValueError(f"Invalid knob: {knob_no}")
-        ids = model.knob_ids[knob_no]
+        ids = model.knob_ids[knob_number(knob_no, model, orientation, knobs_location)]
         for action, idx in (("left", 0), ("press", 1), ("right", 2)):
             spec = (actions or {}).get(action)
             if spec is not None:

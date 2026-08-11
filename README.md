@@ -101,6 +101,18 @@ volume, keyboard, and mouse actions still work:
 Syntax: `cmd+c`, `cmd+shift+4`, `h,e,i` (sequence), `c@100` (delay),
 `volumeup`/`volumedown`/`mute`, `mouse:left`.
 
+### Layout orientation
+
+The YAML layout can describe the pad in the orientation in which you use it:
+
+```yaml
+orientation: vertical       # horizontal or vertical
+knobs_location: top        # left/right when horizontal; top/bottom when vertical
+```
+
+Keys are then read from the `keys` matrix in that physical orientation. Knobs are numbered
+left-to-right on a top/bottom edge and top-to-bottom on a left/right edge.
+
 ## Status
 
 - ✅ Key bindings, modifiers, sequences, and delays

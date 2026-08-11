@@ -87,7 +87,7 @@ class DaemonFirstRunTests(unittest.TestCase):
 
 class MacroctlModelTests(unittest.TestCase):
     def test_loads_16_key_layout(self):
-        config = """model: xzkj_16key_3knob\nkeys:\n  - [a, b, c, d]\n  - [e, f, g, h]\n  - [i, j, k, l]\n  - [m, n, o, p]\nknobs:\n  3: {press: enter}\n"""
+        config = """model: xzkj_16key_3knob\norientation: vertical\nknobs_location: top\nkeys:\n  - [a, b, c, d]\n  - [e, f, g, h]\n  - [i, j, k, l]\n  - [m, n, o, p]\nknobs:\n  3: {press: enter}\n"""
         with tempfile.NamedTemporaryFile("w", delete=False) as f:
             f.write(config)
             path = f.name
@@ -97,8 +97,13 @@ class MacroctlModelTests(unittest.TestCase):
             os.unlink(path)
         self.assertEqual(model.id, device.MODEL_16_3)
         self.assertEqual(layer, 1)
-        self.assertEqual(bindings[0][0], 1)
-        self.assertEqual(bindings[-1][0], 24)
+        self.assertEqual([binding[0] for binding in bindings[:4]], [4, 8, 12, 16])
+        self.assertEqual([binding[0] for binding in bindings[8:12]], [2, 6, 10, 14])
+        self.assertEqual(bindings[-1][0], 18)
+
+    def test_rejects_an_orientation_and_knob_edge_that_do_not_match(self):
+        with self.assertRaisesRegex(ValueError, "knobs_location"):
+            macroctl.layout_position(1, 1, device.get(device.MODEL_16_3), "vertical", "right")
 
     def test_16_key_media_and_mouse_frames_use_captured_format(self):
         handle = FakeHidHandle()
