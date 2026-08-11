@@ -182,12 +182,13 @@
   <div class="title">
     <div class="lights"><i></i><i></i><i></i></div>
     <h1>Macropad</h1>
-    <div class="right-title">
+      <div class="right-title">
       <div class="status">
         <span><i id="s-dev"></i><b id="l-pad">PAD</b></span>
         <span><i id="s-dmn"></i>DAEMON</span>
-      </div>
-      <button class="lang" id="lang">NO</button>
+        </div>
+        <select id="model" aria-label="Macropad model" style="font:11px ui-monospace,monospace;border:1px solid #D6D6DA;border-radius:7px;padding:5px;background:#fff"></select>
+        <button class="lang" id="lang">NO</button>
     </div>
   </div>
   <div class="profilebar">
@@ -209,7 +210,7 @@
         <path id="bodyline" fill="none" stroke="#C4C4CA" stroke-width="2.5"/>
         <g id="parts"></g>
       </svg>
-      <div class="board-id">@XZKJ-12key_4knob</div>
+      <div class="board-id" id="board-id"></div>
     </div>
     <div class="pane-r">
       <div class="tabs" id="tabs"></div>
@@ -292,22 +293,21 @@ const t = (k,...a) => { const v = I18N[LANG][k]; return typeof v==="function"?v(
 // ═══ geometri ════════════════════════════════════════════════════════
 const L=115,R=660,T=190,B=1260,LCX=743,LCY=353,LR=150;
 const DY=Math.sqrt(LR*LR-(R-LCX)**2);
-const BODY=`M ${L+30} ${T} L ${R} ${T} L ${R} ${(LCY-DY).toFixed(1)} `
+const LOBE_BODY=`M ${L+30} ${T} L ${R} ${T} L ${R} ${(LCY-DY).toFixed(1)} `
   +`A ${LR} ${LR} 0 1 1 ${R} ${(LCY+DY).toFixed(1)} L ${R} ${B-30} `
   +`Q ${R} ${B} ${R-30} ${B} L ${L+30} ${B} Q ${L} ${B} ${L} ${B-30} `
   +`L ${L} ${T+30} Q ${L} ${T} ${L+30} ${T} Z`;
-const KNOBS={1:{cx:200,cy:268,r:62,size:"small"},2:{cx:197,cy:475,r:62,size:"small"},
+let BODY=LOBE_BODY, KNOBS={1:{cx:200,cy:268,r:62,size:"small"},2:{cx:197,cy:475,r:62,size:"small"},
              3:{cx:432,cy:353,r:84,size:"medium"},4:{cx:743,cy:353,r:112,size:"large"}};
 const COLS=[195,350,522],ROWS=[665,827,987,1152],KW=118,KH=108;
-const KEYS={}; for(let i=0;i<12;i++) KEYS[i+5]={x:COLS[i%3],y:ROWS[Math.floor(i/3)]};
+let KEYS={}; for(let i=0;i<12;i++) KEYS[i+5]={x:COLS[i%3],y:ROWS[Math.floor(i/3)]};
 const ACTS=[["left","↺"],["press","●"],["right","↻"]];
 const TYPES=[["key","tKey"],["media","tMedia"],["app","tApp"],["url","tUrl"],["shell","tShell"]];
 const MEDIA=[["playpause","⏯"],["prev","⏮"],["next","⏭"],
              ["volumedown","🔉"],["mute","🔇"],["volumeup","🔊"]];
 
-// DOC = hele fila {active, profiles:{navn:{default,apps}}}. P = den aktive
-// profilens {default,apps} — en referanse inn i DOC, så redigering muterer DOC.
-let DOC={active:"Profil 1",profiles:{}}, PROFILE="Profil 1";
+// DOC contains independently stored profile documents for each hardware model.
+let DOC={active_model:"xzkj_12key_4knob",models:{}}, MODEL="xzkj_12key_4knob", PROFILE="Profil 1";
 let P={default:{},apps:{}}, META={}, prof="default", sel=null, selAct="right",
     type="key", armed=false, pollTimer=null;
 
@@ -317,6 +317,28 @@ const map=()=> prof==="default"?P.default:(P.apps[prof]||={});
 const target=()=> !sel?null:(sel.startsWith("knob")?`${sel}.${selAct}`:sel);
 const get=x=> x?(map()[x]||""):"";
 const inh=x=> prof!=="default"&&x&&!map()[x]?(P.default[x]||""):"";
+
+function setLayout(){
+  const model=(META.models||[]).find(m=>m.id===MODEL); if(!model)return;
+  $("board-id").textContent=model.boardId;
+  if(model.ui.shape==="lobe"){
+    BODY=LOBE_BODY;
+    KNOBS={1:{cx:200,cy:268,r:62,size:"small"},2:{cx:197,cy:475,r:62,size:"small"},
+      3:{cx:432,cy:353,r:84,size:"medium"},4:{cx:743,cy:353,r:112,size:"large"}};
+    KEYS={}; for(let i=0;i<12;i++) KEYS[i+5]={x:COLS[i%3],y:ROWS[Math.floor(i/3)]};
+    return;
+  }
+  BODY="M 145 160 L 805 160 Q 850 160 850 205 L 850 1240 Q 850 1285 805 1285 L 145 1285 Q 100 1285 100 1240 L 100 205 Q 100 160 145 160 Z";
+  KNOBS={1:{cx:210,cy:345,r:58,size:"small"},2:{cx:355,cy:345,r:58,size:"small"},3:{cx:660,cy:345,r:105,size:"large"}};
+  const cols=[190,380,570,760], rows=[615,795,975,1155]; KEYS={};
+  model.keys.forEach((n,i)=>KEYS[n]={x:cols[i%4],y:rows[Math.floor(i/4)]});
+}
+
+function modelPicker(){
+  const picker=$("model"); picker.innerHTML="";
+  if(!MODEL){const o=document.createElement("option"); o.value=""; o.textContent="Select model…"; o.selected=true; o.disabled=true; picker.appendChild(o);}
+  (META.models||[]).forEach(m=>{const o=document.createElement("option"); o.value=m.id; o.textContent=m.name; o.selected=m.id===MODEL; picker.appendChild(o);});
+}
 
 function pretty(a){
   if(!a) return "";
@@ -577,7 +599,8 @@ const save=()=>fetch("/api/save",{method:"POST",headers:{"Content-Type":"applica
 // ═══ profiler (Profil 1/2/3) ═════════════════════════════════════════
 function profileBar(){
   const c=$("profiles"); c.innerHTML="";
-  (META.profileNames||Object.keys(DOC.profiles)).forEach(name=>{
+  if(!MODEL) return;
+  (META.profileNames||Object.keys(DOC.models[MODEL].profiles)).forEach(name=>{
     const b=document.createElement("button");
     b.textContent=name; b.className=(PROFILE===name?"on":"");
     b.onclick=()=>switchProfile(name);
@@ -585,8 +608,9 @@ function profileBar(){
   });
 }
 function switchProfile(name){
-  if(name===PROFILE||!DOC.profiles[name]) return;
-  PROFILE=name; DOC.active=name; P=DOC.profiles[name];
+  const profiles=DOC.models[MODEL].profiles;
+  if(name===PROFILE||!profiles[name]) return;
+  PROFILE=name; DOC.models[MODEL].active=name; P=profiles[name];
   prof="default"; sel=null;           // tilbake til standard-fanen i ny profil
   save();                             // aktiv profil byttes også for daemonen
   profileBar(); tabs(); syncEditor(); render();
@@ -625,9 +649,16 @@ $("yaml").onclick=()=>{
   w.document.write("<pre style='font:12px ui-monospace;padding:20px;white-space:pre-wrap'>"
     +JSON.stringify(DOC,null,2).replace(/[<>&]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;"}[c]))+"</pre>");
 };
+$("model").onchange=async e=>{
+  const r=await (await fetch("/api/model",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({model:e.target.value})})).json();
+  if(!r.ok){toast(r.error,true); return;}
+  DOC=r.doc; MODEL=DOC.active_model; PROFILE=DOC.models[MODEL].active; P=DOC.models[MODEL].profiles[PROFILE];
+  prof="default"; sel=null; $("prep").disabled=false; setLayout(); modelPicker(); build(); applyLang();
+};
 $("prep").onclick=async()=>{const b=$("prep"); b.disabled=true;
+  if(!MODEL){toast("Select a model first",true); b.disabled=false; return;}
   const r=await (await fetch("/api/flash",{method:"POST",
-    headers:{"Content-Type":"application/json"},body:"{}"})).json();
+    headers:{"Content-Type":"application/json"},body:JSON.stringify({model:MODEL})})).json();
   b.disabled=false;
   r.ok?toast(t("written",r.count)):toast(r.error,true);};
 
@@ -651,9 +682,10 @@ async function livePress(){
   }catch(e){}
 }
 (async()=>{
-  build();
   const st=await (await fetch("/api/state")).json();
-  META=st; DOC=st.doc; PROFILE=DOC.active; P=DOC.profiles[PROFILE];
+  META=st; DOC=st.doc; MODEL=DOC.active_model;
+  if(MODEL){PROFILE=DOC.models[MODEL].active; P=DOC.models[MODEL].profiles[PROFILE];}
+  $("prep").disabled=!MODEL; setLayout(); modelPicker(); build();
   applyLang(); status();
   setInterval(status,4000);
   setInterval(livePress,220);

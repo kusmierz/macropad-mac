@@ -1,8 +1,7 @@
 # macropad-mac
 
-macOS configurator for the AliExpress **XZKJ 12-key / 4-knob** macropad (USB `514C:8850`).
-The same USB ID is also used by a different **4×4-key / 3-knob** product, so the ID alone
-does not identify the physical layout.
+macOS configurator for the AliExpress **XZKJ 12-key / 4-knob** and **16-key / 3-knob** macropads
+(USB `514C:8850`). The same USB ID is used by both, so the ID alone does not identify the layout.
 
 The protocol was reverse-engineered from scratch for this variant. The configuration is stored
 in the keyboard's own memory, so the software is only needed when you change the layout.
@@ -11,8 +10,9 @@ in the keyboard's own memory, so the software is only needed when you change the
 
 <img src="design/device.png" width="560" alt="XZKJ 12-key/4-knob macropad">
 
-Twelve keys in a 4×3 layout and four knobs — two small, one medium, and one large knob in a
-protruding lobe at the top right. It is sold under many names. Check the USB ID to be sure:
+Supported models are `@XZKJ-12key_4knob` (twelve keys in a 4×3 layout and four knobs) and
+`@XZKJ-16key_3knob` (sixteen keys in a 4×4 layout and three knobs). Choose the model explicitly
+in the configurator before preparing the pad.
 
 ```bash
 hidutil list | grep 514c
@@ -32,12 +32,15 @@ python3 -m venv .venv
 
 <img src="design/taktil_stillhet_makropad.png" width="720" alt="Interface">
 
-1. **Prepare the pad** — once. This writes 24 invisible signals to the keyboard.
+1. Choose the model, then **prepare the pad** — once. This writes 24 or 25 invisible signals.
 2. Click a key or knob in the diagram and choose what it should do.
 3. Start the daemon: `.venv/bin/python daemon.py`
 
 The pad never needs to be reflashed again. Everything you change in the interface takes effect
 immediately — the daemon reloads the profile whenever it is saved.
+
+Profiles are stored separately per model. Daemon signal mode supports USB and the included
+receiver; native Bluetooth does not reliably emit the extended F-key signals it requires.
 
 The daemon requires **Accessibility permission**: System Settings → Privacy & Security →
 Accessibility → add the application you use to start it.
@@ -91,6 +94,7 @@ volume, keyboard, and mouse actions still work:
 
 ```bash
 .venv/bin/python macroctl.py flash config.example.yaml
+.venv/bin/python macroctl.py flash config.16key.example.yaml
 .venv/bin/python macroctl.py list-keys
 ```
 

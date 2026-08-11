@@ -1,49 +1,47 @@
 #!/usr/bin/env python3
-"""
-Signals — the bridge between the pad and daemon.
-
-The pad knows nothing about the app in use; it only sends key presses. We bind each
-physical key/knob to a *signal*: a combination that nothing else uses. The daemon
-captures the signal and decides what should actually happen.
-
-macOS has virtual key codes only for F13–F20 (eight). We need 24 signals
-(12 keys + 4 knobs × 3), so we use three modifier tiers:
-
-    tier 0:  F13–F20              (8)
-    tier 1:  ctrl+alt + F13–F20   (8)
-    tier 2:  ctrl+shift + F13–F20 (8)
-
-F13–F20 do not exist on Mac keyboards, so they are safe to claim.
-
-NOTE — do not use “hyper” (cmd+ctrl+shift+alt). Tools such as Karabiner, SupaKey,
-and TellyKeys use that stack for Caps Lock, causing Caps Lock to toggle whenever
-you use the pad. Verified with research/sniff_tap.py. Two modifiers are enough and
-collide far less often.
-"""
+"""Unique keyboard signals used to bridge a pad to the daemon."""
 import device
 
-FKEYS = [f"f{i}" for i in range(13, 21)]           # F13–F20
-TIERS = ["", "ctrl+alt+", "ctrl+shift+"]
 
-# All targets in physical order: 12 keys, then the knobs
-TARGETS = [f"key{n}" for n in range(5, 17)] + \
-          [f"knob{n}.{a}" for n in (1, 2, 3, 4) for a in ("left", "press", "right")]
-
-SIGNALS = {t: TIERS[i // 8] + FKEYS[i % 8] for i, t in enumerate(TARGETS)}
-BY_SIGNAL = {v: k for k, v in SIGNALS.items()}
-
-assert len(SIGNALS) == 24 and len(BY_SIGNAL) == 24, "signals must be unique"
+FKEYS = [f"f{i}" for i in range(13, 21)]
+# Keep the original three tiers unchanged. The fourth is needed only by the
+# 25th target on the 16-key/3-knob model; do not use Hyper here.
+TIERS = ["", "ctrl+alt+", "ctrl+shift+", "alt+shift+"]
 
 
-def spec_for(target: str) -> str:
-    """The binding to flash to the pad for a given target."""
-    return SIGNALS[target]
+def targets(model_id: str | None = None):
+    return device.get(model_id).targets()
 
 
-def key_id_for(target: str) -> int:
-    return device.resolve(target)
+def signal_map(model_id: str | None = None):
+    model_targets = targets(model_id)
+    if len(model_targets) > len(FKEYS) * len(TIERS):
+        raise ValueError("for mange mål for tilgjengelige signaler")
+    return {target: TIERS[index // len(FKEYS)] + FKEYS[index % len(FKEYS)]
+            for index, target in enumerate(model_targets)}
+
+
+def reverse_signal_map(model_id: str | None = None):
+    result = signal_map(model_id)
+    reverse = {value: key for key, value in result.items()}
+    assert len(result) == len(reverse), "signalene må være unike"
+    return reverse
+
+
+def spec_for(target: str, model_id: str | None = None) -> str:
+    return signal_map(model_id)[target]
+
+
+def key_id_for(target: str, model_id: str | None = None) -> int:
+    return device.resolve(target, model_id)
+
+
+# Compatibility exports for callers and profiles targeting the original model.
+TARGETS = targets()
+SIGNALS = signal_map()
+BY_SIGNAL = reverse_signal_map()
 
 
 if __name__ == "__main__":
-    for t in TARGETS:
-        print(f"{t:16s}  id {key_id_for(t):2d}   ->  {SIGNALS[t]}")
+    for target in TARGETS:
+        print(f"{target:16s}  id {key_id_for(target):2d}   ->  {spec_for(target)}")
