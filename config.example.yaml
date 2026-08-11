@@ -1,7 +1,6 @@
 # Example configuration for the XZKJ macropad (12 keys + 4 knobs)
 # Flash with: .venv/bin/python macroctl.py flash config.example.yaml
-
-# Dette eksemplet gjelder @XZKJ-12key_4knob.
+# This example is for @XZKJ-12key_4knob.
 model: xzkj_12key_4knob
 
 layer: 1

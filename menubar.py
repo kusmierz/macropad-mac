@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Makropad — menylinje-app.
+Makropad — menu-bar app.
 
-Kjører daemonen inne i seg selv (event-tapen henger på NSApplication sin run-loop),
-og serverer konfigurasjonsgrensesnittet lokalt.
+Runs the daemon internally (the event tap attaches to NSApplication's run loop)
+and serves the configuration interface locally.
 
     .venv/bin/python menubar.py
 """
@@ -34,8 +34,7 @@ LOG = os.path.expanduser("~/Library/Logs/Makropad.log")
 
 
 def log(msg):
-    """En buntet app har ingen terminal å skrive til — uten dette er den
-    umulig å feilsøke."""
+    """A bundled app has no terminal to write to — this makes it debuggable."""
     try:
         os.makedirs(os.path.dirname(LOG), exist_ok=True)
         with open(LOG, "a") as f:
@@ -56,7 +55,7 @@ request_access = access.request_all
 
 
 def app_path():
-    """Stien til .app-pakka når vi er frosset, ellers til python-skriptet."""
+    """The .app bundle path when frozen, otherwise the Python script path."""
     if getattr(sys, "frozen", False):
         # …/Makropad.app/Contents/MacOS/Makropad
         return os.path.abspath(os.path.join(os.path.dirname(sys.executable),
@@ -69,28 +68,28 @@ class MakropadApp(rumps.App):
         super().__init__("Makropad", icon=resource(ICON_ON), template=True, quit_button=None)
         self.server = None
         self.daemon = None
-        self.prof_items = {}                 # navn -> MenuItem, for avkryssing
-        prof_menu = rumps.MenuItem("Profil")
+        self.prof_items = {}                 # name -> MenuItem, used for checkmarks
+        prof_menu = rumps.MenuItem("Profile")
         for name in store.NAMES:
             it = rumps.MenuItem(name, callback=self.switch_profile)
             self.prof_items[name] = it
             prof_menu.add(it)
         self.menu = [
-            rumps.MenuItem("Åpne konfigurasjon…", callback=self.open_config, key="k"),
+            rumps.MenuItem("Open configuration…", callback=self.open_config, key="k"),
             None,
             prof_menu,
-            rumps.MenuItem("Aktiv", callback=self.toggle_active),
-            rumps.MenuItem("Klargjør padden…", callback=self.prepare),
+            rumps.MenuItem("Active", callback=self.toggle_active),
+            rumps.MenuItem("Prepare pad…", callback=self.prepare),
             None,
-            rumps.MenuItem("Start ved innlogging", callback=self.toggle_login),
+            rumps.MenuItem("Launch at login", callback=self.toggle_login),
             None,
-            rumps.MenuItem("Padde: sjekker…", callback=None),
+            rumps.MenuItem("Pad: checking…", callback=None),
             None,
-            rumps.MenuItem("Avslutt Makropad", callback=self.quit, key="q"),
+            rumps.MenuItem("Quit Makropad", callback=self.quit, key="q"),
         ]
         self.start_server()
         self.start_daemon()
-        self.menu["Start ved innlogging"].state = os.path.exists(AGENT)
+        self.menu["Launch at login"].state = os.path.exists(AGENT)
         self.sync_profile_menu()
 
     # ── oppstart ────────────────────────────────────────────────────────
@@ -99,32 +98,32 @@ class MakropadApp(rumps.App):
         try:
             self.server = socketserver.TCPServer(("127.0.0.1", PORT), config_app.Handler)
         except OSError:
-            self.server = None      # noe annet bruker porten; konfig åpnes uansett
+            self.server = None      # another process uses the port; configuration still opens
             return
         threading.Thread(target=self.server.serve_forever, daemon=True).start()
 
     def start_daemon(self):
-        """Prøv å ta tapen. Blokkerer aldri — en modal her ville fryst
-        hovedtråden, og da hadde retry-timeren under aldri fått kjøre."""
-        log(f"tilgang: {access.status()}")
+        """Try to install the tap. Never block — a modal would freeze the main
+        thread and prevent the retry timer below from running."""
+        log(f"access: {access.status()}")
         self.daemon = dmn.Daemon()
         ok = has_access() and dmn.install_tap(self.daemon)
-        self.menu["Aktiv"].state = ok
+        self.menu["Active"].state = ok
         log(f"install_tap: {ok}")
         if ok:
             return
-        self.menu["Padde: sjekker…"].title = "Trenger tilgang"
-        request_access()          # macOS viser dialogen og legger appen i lista
+        self.menu["Pad: checking…"].title = "Permission required"
+        request_access()          # macOS displays its dialog and adds the app to the list
         self.retry = rumps.Timer(self.retry_daemon, 2)
         self.retry.start()
 
     def retry_daemon(self, timer):
-        """Poller til tilgangen er på plass. macOS gir den ikke til en prosess
-        som allerede kjører, så vi starter oss selv på nytt."""
+        """Poll until permission is granted. macOS does not grant it to an
+        already-running process, so restart the application."""
         if not has_access():
             return
         timer.stop()
-        log("tilgang gitt — starter på nytt")
+        log("permission granted — restarting")
         target = app_path()
         if target.endswith(".app"):
             subprocess.Popen(["open", "-n", target])
@@ -132,19 +131,19 @@ class MakropadApp(rumps.App):
             subprocess.Popen([sys.executable, target])
         rumps.quit_application()
 
-    # ── meny ────────────────────────────────────────────────────────────
+    # ── menu ────────────────────────────────────────────────────────────
     def open_config(self, _):
         webbrowser.open(URL)
 
     def switch_profile(self, sender):
-        """Bytt aktiv profil. Skriver fila og tvinger daemonen til å laste den."""
+        """Change the active profile, write it, and force a daemon reload."""
         store.set_active(sender.title)
         if self.daemon:
-            self.daemon.load()               # reflekter umiddelbart
+            self.daemon.load()               # reflect immediately
         self.sync_profile_menu()
 
     def sync_profile_menu(self):
-        """Kryss av den aktive profilen. Leser disk så UI-endringer fanges opp òg."""
+        """Check the active profile. Read disk so UI changes are also picked up."""
         try:
             doc = store.load()
             model_id = store.active_model(doc)
@@ -164,25 +163,26 @@ class MakropadApp(rumps.App):
     def prepare(self, _):
         model_id = store.active_model(store.load())
         if not model_id:
-            rumps.alert("Velg enhetsmodell", "Åpne konfiguratoren og velg padden før klargjøring.")
+            rumps.alert("Select a device model",
+                        "Open the configurator and select the pad before preparing it.")
             return
         model = device.get(model_id)
         count = len(model.targets())
         w = rumps.Window(
-            title="Klargjør padden",
-            message=(f"Skriver {count} signaler til {model.name}. Dette overskriver det som "
-                     "ligger der fra før, og trengs bare én gang.\n\nEtterpå styrer du "
-                     "alt fra konfigurasjonen — padden trenger aldri røres igjen."),
-            ok="Skriv", cancel="Avbryt", dimensions=(0, 0))
+            title="Prepare pad",
+            message=(f"Writes {count} signals to {model.name}. This overwrites existing "
+                     "bindings and is needed only once.\n\nAfterward, configuration "
+                     "controls everything — you never need to touch the pad again."),
+            ok="Write", cancel="Cancel", dimensions=(0, 0))
         if not w.run().clicked:
             return
         try:
             n = config_app.flash_signals()
-            rumps.notification("Makropad", "Padden er klar",
-                               f"{n} signaler skrevet.")
+            rumps.notification("Makropad", "Pad is ready",
+                               f"{n} signals written.")
         except Exception as e:
-            rumps.alert("Kunne ikke skrive til padden",
-                        f"{e}\n\nEr den koblet til?")
+            rumps.alert("Could not write to the pad",
+                        f"{e}\n\nIs it connected?")
 
     def toggle_login(self, sender):
         if sender.state:
@@ -223,17 +223,17 @@ class MakropadApp(rumps.App):
             ok = False
         if ok:
             model_id = store.active_model(store.load())
-            label = device.get(model_id).board_id if model_id else "velg modell"
-            self.menu["Padde: sjekker…"].title = f"Padde: tilkoblet · {label}"
+            label = device.get(model_id).board_id if model_id else "select model"
+            self.menu["Pad: checking…"].title = f"Pad: connected · {label}"
         else:
-            self.menu["Padde: sjekker…"].title = "Padde: frakoblet"
-        if dmn.TAP and not dmn.is_enabled() and self.menu["Aktiv"].state:
-            dmn.set_enabled(True)      # macOS slår av tapen ved treghet
-        self.sync_profile_menu()       # fang opp profilbytte gjort i UI-et
+            self.menu["Pad: checking…"].title = "Pad: disconnected"
+        if dmn.TAP and not dmn.is_enabled() and self.menu["Active"].state:
+            dmn.set_enabled(True)      # macOS disables the tap when it is slow
+        self.sync_profile_menu()       # pick up profile changes made in the UI
 
 
 if __name__ == "__main__":
-    # Alt daemonen skriver havner i loggen — ellers er en buntet app stum.
+    # Everything written by the daemon goes to the log; otherwise a bundled app is silent.
     try:
         os.makedirs(os.path.dirname(LOG), exist_ok=True)
         sys.stdout = sys.stderr = open(LOG, "a", buffering=1)
@@ -241,10 +241,10 @@ if __name__ == "__main__":
         pass
     log("── start ──────────────────────────────")
     NSApplication.sharedApplication().setActivationPolicy_(
-        NSApplicationActivationPolicyAccessory)   # ingen Dock-ikon
+        NSApplicationActivationPolicyAccessory)   # no Dock icon
     try:
         MakropadApp().run()
     except Exception:
         import traceback
-        log("KRASJ:\n" + traceback.format_exc())
+        log("CRASH:\n" + traceback.format_exc())
         raise

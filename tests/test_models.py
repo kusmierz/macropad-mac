@@ -64,12 +64,14 @@ class StoreMigrationTests(unittest.TestCase):
             "Profil 1": {"default": {"key5": "key:cmd+c"}, "apps": {}}
         }})
         self.assertEqual(doc["active_model"], device.MODEL_12_4)
-        self.assertEqual(doc["models"][device.MODEL_12_4]["profiles"]["Profil 1"]["default"]["key5"], "key:cmd+c")
-        self.assertEqual(doc["models"][device.MODEL_16_3]["profiles"]["Profil 1"]["default"], {})
+        self.assertEqual(doc["models"][device.MODEL_12_4]["active"], "Profile 1")
+        self.assertEqual(doc["models"][device.MODEL_12_4]["profiles"]["Profile 1"]["default"]["key5"], "key:cmd+c")
+        self.assertNotIn("Profil 1", doc["models"][device.MODEL_12_4]["profiles"])
+        self.assertEqual(doc["models"][device.MODEL_16_3]["profiles"]["Profile 1"]["default"], {})
 
     def test_model_profiles_do_not_share_mappings(self):
         doc = store.normalize({})
-        doc["models"][device.MODEL_12_4]["profiles"]["Profil 1"]["default"]["key5"] = "key:cmd+c"
+        doc["models"][device.MODEL_12_4]["profiles"]["Profile 1"]["default"]["key5"] = "key:cmd+c"
         doc["active_model"] = device.MODEL_16_3
         self.assertEqual(store.active_map(doc)["default"], {})
 
