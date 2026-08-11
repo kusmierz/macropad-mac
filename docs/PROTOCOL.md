@@ -1,72 +1,72 @@
-# Protokoll — XZKJ 12-key/4-knob (514C:8850)
+# Protocol — XZKJ 12-key/4-knob (514C:8850)
 
-Reverse-engineeret på macOS mot en fysisk enhet, juli 2026. Bygger på
+Reverse-engineered on macOS against a physical device, July 2026. Based on
 [ch57x-keyboard-tool issue #153](https://github.com/kriomant/ch57x-keyboard-tool/issues/153),
-som dokumenterte `03 fd`-rammen for 16-key/3-knob-varianten med samme VID/PID.
+which documented the `03 fd` frame for the 16-key/3-knob variant with the same VID/PID.
 
 ## Transport
 
-USB HID, vendor-grensesnittet (usage page `0xFF00`, interface 0). Enheten eksponerer også
-vanlige HID-grensesnitt (keyboard/mouse/consumer) på interface 1 — de er kun for input.
+USB HID, vendor interface (usage page `0xFF00`, interface 0). The device also exposes
+standard HID interfaces (keyboard/mouse/consumer) on interface 1 — they are for input only.
 
 ```python
 devs = [d for d in hid.enumerate(0x514C, 0x8850) if d["usage_page"] == 0xFF00]
 h = hid.device(); h.open_path(devs[0]["path"])
 ```
 
-Output-rapporter er **65 byte** inkludert report-ID `0x03`, nullpolstret.
+Output reports are **65 bytes**, including report ID `0x03`, zero-padded.
 
-## Tastebinding (type 0x01)
+## Key bindings (type 0x01)
 
 ```
 offset  0     1     2       3      4     5     6      7...
         0x03  0xFD  key_id  layer  0x01  0x00  count  (delay_hi, delay_lo, hid_code) × count
 ```
 
-- `layer` er 1-basert (1–3 på denne enheten)
-- `count` ≤ 18 — modifikatorer teller med
-- Hver oppføring er 3 byte: 16-bit big-endian forsinkelse i ms, så HID usage-ID
+- `layer` is 1-based (1–3 on this device)
+- `count` ≤ 18 — modifiers count toward the limit
+- Each entry is 3 bytes: a 16-bit big-endian delay in ms, followed by the HID usage ID
 
-Modifikatorer er egne koder i sekvensen, og gjelder **den første ikke-modifikatoren som
-følger**:
+Modifiers are separate codes in the sequence and apply to **the first non-modifier that
+follows**:
 
-| Kode | Modifikator | Kode | Modifikator |
+| Code | Modifier | Code | Modifier |
 |---|---|---|---|
-| `0xF1` | Venstre Ctrl | `0xF5` | Høyre Ctrl |
-| `0xF2` | Venstre Shift | `0xF6` | Høyre Shift |
-| `0xF3` | Venstre Alt | `0xF7` | Høyre Alt |
-| `0xF4` | Venstre Meta/Cmd | `0xF8` | Høyre Meta |
+| `0xF1` | Left Ctrl | `0xF5` | Right Ctrl |
+| `0xF2` | Left Shift | `0xF6` | Right Shift |
+| `0xF3` | Left Alt | `0xF7` | Right Alt |
+| `0xF4` | Left Meta/Cmd | `0xF8` | Right Meta |
 
-Eksempel — `Ctrl+Alt+Delete` på tast-ID 1, lag 1:
+Example — `Ctrl+Alt+Delete` on key ID 1, layer 1:
 
 ```
 03 fd 01 01 01 00 03  00 00 f1  00 00 f3  00 00 4c
 ```
 
-## Museklikk (type 0x03)
+## Mouse clicks (type 0x03)
 
 ```
 03 fd key_id layer 03 00 01 00 buttons
 ```
 
-`buttons` er en bitmaske: `1` = venstre, `2` = høyre, `4` = midt.
+`buttons` is a bitmask: `1` = left, `2` = right, `4` = middle.
 
 ## Media
 
-**Funn for denne varianten:** volum og mute ligger på **keyboard usage-siden**, ikke
-consumer-siden, og bindes som helt vanlige tastekoder med type `0x01`:
+**Finding for this variant:** volume and mute are on the **keyboard usage page**, not
+the consumer page, and are bound as ordinary key codes with type `0x01`:
 
-| Kode | Funksjon |
+| Code | Function |
 |---|---|
 | `0x7F` | Mute |
-| `0x80` | Volum opp |
-| `0x81` | Volum ned |
+| `0x80` | Volume up |
+| `0x81` | Volume down |
 
-Consumer-typen (`0x02`) i k884x-stil ble testet i fem varianter og ga ingen respons på
-denne enheten. Play/pause/neste/forrige er derfor fortsatt uløst — de finnes ikke på
-keyboard-siden, så de må gå gjennom et consumer-format vi ennå ikke har funnet.
+The k884x-style consumer type (`0x02`) was tested in five variants and produced no response
+on this device. Play/pause/next/previous therefore remain unresolved — they do not exist on
+the keyboard page, so they must use a consumer format we have not yet found.
 
-## Avslutte programmering
+## Ending programming
 
 ```
 03 aa aa
@@ -74,12 +74,12 @@ keyboard-siden, så de må gå gjennom et consumer-format vi ennå ikke har funn
 03 aa aa
 ```
 
-## Key-ID-kart
+## Key ID map
 
-Enheten teller tastene **nedenfra og opp, kolonnevis** — ikke i leserekkefølge. Kartlagt
-empirisk ved å binde hver ID til å skrive sitt eget nummer.
+The device counts keys **from bottom to top, column by column** — not in reading order. Mapped
+empirically by binding each ID to type its own number.
 
-Fysisk nummerering (som i programvaren og på README-illustrasjonen):
+Physical numbering (as in the software and the README illustration):
 
 ```
       (1)      (3)        ( 4 )
@@ -91,28 +91,28 @@ Fysisk nummerering (som i programvaren og på README-illustrasjonen):
       14   15   16
 ```
 
-Taster:
+Keys:
 
-| Fysisk | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
+| Physical | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 | 13 | 14 | 15 | 16 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | **key_id** | 4 | 8 | 12 | 3 | 7 | 11 | 2 | 6 | 10 | 1 | 5 | 9 |
 
-Knotter — hver gir tre ID-er:
+Knobs — each provides three IDs:
 
-| Knott | Vri venstre | Trykk | Vri høyre |
+| Knob | Turn left | Press | Turn right |
 |---|---|---|---|
-| 1 (liten, øverst v.) | 19 | 20 | 21 |
-| 2 (liten, nederst v.) | 16 | 17 | 18 |
+| 1 (small, upper left) | 19 | 20 | 21 |
+| 2 (small, lower left) | 16 | 17 | 18 |
 | 3 (medium) | 22 | 23 | 24 |
-| 4 (stor) | 13 | 14 | 15 |
+| 4 (large) | 13 | 14 | 15 |
 
-Merk at knott 4 bruker ID 13–15 — området som på 15-key/3-knob-modeller er allokert til
-taster. Samme observasjon er gjort i `k884x.rs` i ch57x-keyboard-tool: en tasterad byttes
-i praksis mot en ekstra knott. Rekkefølgen på knottene (2 før 1, og 4 nederst) følger
-ingen åpenbar logikk og må kartlegges per modell.
+Note that knob 4 uses IDs 13–15 — the range allocated to keys on 15-key/3-knob models.
+The same observation was made in `k884x.rs` in ch57x-keyboard-tool: one row of keys is
+effectively replaced by an extra knob. The order of the knobs (2 before 1, and 4 at the
+bottom) follows no obvious logic and must be mapped for each model.
 
-## Metode
+## Method
 
-`research/map_test.py` binder ID 1–24 til å skrive sitt eget tosifrede nummer; deretter
-trykker man alt fysisk i et tekstfelt og leser av rekkefølgen. `research/media_test.py` og
-`media_test2.py` tester hypoteser for media-formatet.
+`research/map_test.py` binds IDs 1–24 to type their own two-digit number; then press
+everything physically in a text field and read the order. `research/media_test.py` and
+`media_test2.py` test hypotheses for the media format.

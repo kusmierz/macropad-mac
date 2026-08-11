@@ -1,48 +1,48 @@
-# Daemonen — app-avhengige taster
+# The Daemon — app-dependent keys
 
-Padden alene kan bare sende faste tastetrykk. Daemonen gjør den om til noe som vet
-hvilken app du bruker: samme knott kan spole i Spotify og zoome i Figma.
+The pad alone can only send fixed keystrokes. The daemon turns it into something that knows
+which app you are using: the same knob can seek in Spotify and zoom in Figma.
 
-Den løser også media-transporten. Padden har ingen fungerende consumer-koder for
-play/pause/neste/forrige (se [PROTOCOL.md](PROTOCOL.md)) — men det trenger den ikke,
-for daemonen sender dem via macOS' egne API-er i stedet.
+It also handles media transport. The pad has no working consumer codes for
+play/pause/next/previous (see [PROTOCOL.md](PROTOCOL.md)) — but it does not need them,
+because the daemon sends those commands through macOS's own APIs instead.
 
-## Slik henger det sammen
+## How it works
 
 ```
-   Padden              Daemonen                    macOS
-   ──────              ────────                    ─────
-   knott 3 høyre  →  cmd+ctrl+shift+alt+F17  →  slår opp i profiles.yaml
-                                                 ├─ Spotify i front?  → media:next
-                                                 └─ ellers            → media:next
-                                              →  sender NX_KEYTYPE_NEXT, svelger signalet
+   Pad                 Daemon                      macOS
+   ───                 ──────                      ─────
+   knob 3 right   →  cmd+ctrl+shift+alt+F17  →  looks up profiles.yaml
+                                                ├─ Spotify in front?  → media:next
+                                                └─ otherwise          → media:next
+                                             →  sends NX_KEYTYPE_NEXT, swallows the signal
 ```
 
-Padden flashes **én gang** med 24 unike signaler. Etterpå endrer du bare
-`profiles.yaml` — padden trenger aldri røres igjen.
+The pad is flashed **once** with 24 unique signals. After that, you only change
+`profiles.yaml` — the pad never needs to be touched again.
 
-### Hvorfor F13–F20?
+### Why F13–F20?
 
-De finnes ikke på Mac-tastaturer, så ingenting annet bruker dem. macOS definerer
-virtuelle tastekoder kun for F13–F20 (åtte), så vi bruker tre modifikatornivåer for
-å få 24 unike signaler: rene, `ctrl+shift+alt+`, og `cmd+ctrl+shift+alt+`.
-Se `signals.py` for kartet.
+They do not exist on Mac keyboards, so nothing else uses them. macOS defines
+virtual key codes only for F13–F20 (eight), so we use three modifier levels to
+get 24 unique signals: unmodified, `ctrl+shift+alt+`, and `cmd+ctrl+shift+alt+`.
+See `signals.py` for the map.
 
-## Oppsett
+## Setup
 
 ```bash
-.venv/bin/python setup_daemon.py --dry    # se planen
-.venv/bin/python setup_daemon.py          # flash signalene (én gang)
-cp profiles.example.yaml profiles.yaml    # din konfigurasjon
+.venv/bin/python setup_daemon.py --dry    # preview the plan
+.venv/bin/python setup_daemon.py          # flash the signals (once)
+cp profiles.example.yaml profiles.yaml    # your configuration
 .venv/bin/python daemon.py
 ```
 
-**Tilgjengelighet kreves.** Daemonen bruker en `CGEventTap`, og macOS krever
-tillatelse: Systeminnstillinger → Personvern og sikkerhet → Tilgjengelighet → legg
-til programmet du starter daemonen fra (Terminal, iTerm, VS Code …). Uten dette
-returnerer `CGEventTapCreate` null, og daemonen sier fra.
+**Accessibility permission is required.** The daemon uses a `CGEventTap`, and macOS requires
+permission: System Settings → Privacy & Security → Accessibility → add the application
+you use to start the daemon (Terminal, iTerm, VS Code …). Without this,
+`CGEventTapCreate` returns null and the daemon reports the problem.
 
-## profiles.yaml
+## `profiles.yaml`
 
 ```yaml
 default:
@@ -50,47 +50,47 @@ default:
   key5:        key:cmd+c
 
 apps:
-  com.spotify.client:          # delstreng av bundle-ID, ikke versalfølsom
+  com.spotify.client:          # substring of bundle ID, case-insensitive
     knob3.left:  media:prev
 ```
 
-Alt som ikke er overstyrt for appen i front faller tilbake til `default`.
-Filen leses på nytt automatisk når du lagrer.
+Anything not overridden for the app in front falls back to `default`.
+The file is reloaded automatically when you save it.
 
-### Handlinger
+### Actions
 
-| Syntaks | Gjør |
+| Syntax | Action |
 |---|---|
-| `media:playpause` `media:next` `media:prev` | mediatransport |
-| `media:mute` `media:volumeup` `media:volumedown` | volum |
-| `key:cmd+shift+4` | send en tastekombinasjon |
-| `app:Spotify` | aktiver eller start en app |
-| `url:https://…` | åpne en URL |
-| `shell:…` | kjør en kommando |
-| `none` | svelg signalet |
+| `media:playpause` `media:next` `media:prev` | media transport |
+| `media:mute` `media:volumeup` `media:volumedown` | volume |
+| `key:cmd+shift+4` | send a key combination |
+| `app:Spotify` | activate or launch an app |
+| `url:https://…` | open a URL |
+| `shell:…` | run a command |
+| `none` | swallow the signal |
 
-Finn bundle-ID-en til en app:
+Find an app's bundle ID:
 
 ```bash
 osascript -e 'id of app "Spotify"'
 ```
 
-## Start automatisk ved innlogging
+## Start automatically at login
 
 ```bash
 cp launchd/no.macropad.daemon.plist ~/Library/LaunchAgents/
 launchctl load ~/Library/LaunchAgents/no.macropad.daemon.plist
 ```
 
-Logg: `/tmp/macropad-daemon.log`. Stopp med `launchctl unload …`.
+Log: `/tmp/macropad-daemon.log`. Stop with `launchctl unload …`.
 
-## Feilsøking
+## Troubleshooting
 
-**«Kunne ikke opprette event tap»** — Tilgjengelighet mangler, se over. Har du gitt
-tillatelsen før, kan den ha festet seg til gammel binærsti; fjern og legg til på nytt.
+**“Could not create event tap”** — Accessibility permission is missing; see above. If you
+granted permission before, it may be tied to an old binary path; remove and add it again.
 
-**Ingenting skjer når du trykker** — kjør `setup_daemon.py` på nytt, og sjekk at
-padden faktisk sender: bind en tast til noe synlig med `app.py` og test i et tekstfelt.
+**Nothing happens when you press** — run `setup_daemon.py` again and check that
+the pad is actually sending: bind a key to something visible with `app.py` and test in a text field.
 
-**Signalene lekker ut i andre apper** — daemonen svelger kun signaler den kjenner
-igjen. Kjører den ikke, går F13–F20 rett til appen i front (som regel ufarlig).
+**Signals leak into other apps** — the daemon swallows only signals it recognizes.
+If it is not running, F13–F20 go straight to the app in front (usually harmless).

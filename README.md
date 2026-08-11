@@ -1,70 +1,71 @@
 # macropad-mac
 
-macOS-konfigurator for AliExpress-makropaden **XZKJ 12-key / 4-knob** (USB `514C:8850`) —
-enheten som bare leveres med kinesisk Windows-programvare.
+macOS configurator for the AliExpress **XZKJ 12-key / 4-knob** macropad (USB `514C:8850`) —
+a device that only ships with Chinese Windows software.
 
-Protokollen er reverse-engineeret fra bunnen for denne varianten. Konfigurasjonen lagres i
-tastaturets eget minne, så programvaren trengs bare når du endrer oppsettet.
+The protocol was reverse-engineered from scratch for this variant. The configuration is stored
+in the keyboard's own memory, so the software is only needed when you change the layout.
 
-## Er dette enheten din?
+## Is this your device?
 
-<img src="design/device.png" width="560" alt="XZKJ 12-key/4-knob makropad">
+<img src="design/device.png" width="560" alt="XZKJ 12-key/4-knob macropad">
 
-Tolv taster i 4×3, fire knotter — to små, én medium, én stor i en utstikkende lobe øverst til
-høyre. Selges under mange navn. Sjekk USB-ID-en for å være sikker:
+Twelve keys in a 4×3 layout and four knobs — two small, one medium, and one large knob in a
+protruding lobe at the top right. It is sold under many names. Check the USB ID to be sure:
 
 ```bash
 hidutil list | grep 514c
 ```
 
-## Kom i gang
+## Getting started
 
 ```bash
 python3 -m venv .venv
 .venv/bin/pip install hidapi pyyaml pyobjc-framework-Quartz pyobjc-framework-Cocoa
-.venv/bin/python app.py          # åpner http://127.0.0.1:8777
+.venv/bin/python app.py          # opens http://127.0.0.1:8777
 ```
 
-<img src="design/taktil_stillhet_makropad.png" width="720" alt="Grensesnitt">
+<img src="design/taktil_stillhet_makropad.png" width="720" alt="Interface">
 
-1. **Klargjør padden** — én gang. Skriver 24 usynlige signaler til tastaturet.
-2. Klikk en tast eller knott i tegningen, velg hva den skal gjøre.
-3. Start daemonen: `.venv/bin/python daemon.py`
+1. **Prepare the pad** — once. This writes 24 invisible signals to the keyboard.
+2. Click a key or knob in the diagram and choose what it should do.
+3. Start the daemon: `.venv/bin/python daemon.py`
 
-Padden trenger aldri reflashes igjen. Alt du endrer i grensesnittet får virkning
-umiddelbart — daemonen laster profilen på nytt når den lagres.
+The pad never needs to be reflashed again. Everything you change in the interface takes effect
+immediately — the daemon reloads the profile whenever it is saved.
 
-**Tilgjengelighet kreves** for daemonen: Systeminnstillinger → Personvern og sikkerhet
-→ Tilgjengelighet → legg til programmet du starter den fra.
+The daemon requires **Accessibility permission**: System Settings → Privacy & Security →
+Accessibility → add the application you use to start it.
 
-## Hva en tast kan gjøre
+## What a key can do
 
-| Type | Eksempel | |
+| Type | Example | |
 |---|---|---|
-| `media` | `playpause` `next` `prev` `mute` `volumeup` | via macOS' egne media-taster |
-| `key` | `cmd+c` `cmd+shift+4` | send en tastekombinasjon |
-| `app` | `Spotify` | aktiver eller start en app |
-| `url` | `https://…` | åpne en lenke |
-| `shell` | `say ferdig` | kjør en kommando |
+| `media` | `playpause` `next` `prev` `mute` `volumeup` | use native macOS media keys |
+| `key` | `cmd+c` `cmd+shift+4` | send a keyboard shortcut |
+| `app` | `Spotify` | activate or launch an app |
+| `url` | `https://…` | open a link |
+| `shell` | `say done` | run a command |
 
-Hver knott gir tre uavhengige handlinger: **vri venstre · trykk · vri høyre**.
+Each knob provides three independent actions: **turn left · press · turn right**.
 
-### Profiler
+### Profiles
 
-Tre profiler — **Profil 1 / 2 / 3** — hver med sitt eget komplette oppsett (standard +
-app-overstyringer). Bytt aktiv profil øverst i grensesnittet eller fra menylinja
-(**Profil**-menyen). Daemonen dispatcher fra den aktive; bytte får virkning umiddelbart.
+Three profiles — **Profile 1 / 2 / 3** — each with its own complete layout (default settings +
+app overrides). Change the active profile at the top of the interface or from the menu bar
+(the **Profile** menu). The daemon dispatches actions from the active profile; switching takes
+effect immediately.
 
-Profilene lever i software, ikke på padden. Det er med vilje: på denne enheten kan ikke
-verten lese hvilket fysisk lag padden står på (firmware sender ingen beskjed), og
-signal-modellen har ikke plass til tre lag med unike, kollisjonsfrie signaler. Software-
-profiler gir samme resultat uten den usikkerheten.
+The profiles live in software, not on the pad. This is intentional: on this device, the host
+cannot determine which physical layer the pad is using (the firmware sends no notification),
+and the signal model cannot accommodate three layers of unique, collision-free signals.
+Software profiles provide the same result without that uncertainty.
 
-### Per app
+### Per-app overrides
 
-Legg til en app med **+** i grensesnittet, så overstyrer du bare tastene du vil ha
-annerledes der — resten arves fra standardprofilen (vist nedtonet i tegningen).
-Samme knott kan spole i Spotify og zoome i VS Code. App-overstyringer er per profil.
+Add an app with **+** in the interface, then override only the keys you want to behave
+differently in that app — the rest are inherited from the default profile (shown dimmed in the
+diagram). The same knob can seek in Spotify and zoom in VS Code. App overrides are per profile.
 
 ```yaml
 default:
@@ -75,45 +76,45 @@ apps:
     knob3.right: media:next
 ```
 
-Se [docs/DAEMON.md](docs/DAEMON.md) for hvordan det virker.
+See [docs/DAEMON.md](docs/DAEMON.md) for details on how it works.
 
-## Uten daemon
+## Without the daemon
 
-Vil du heller ha faste bindinger lagret i padden — uten noe kjørende programvare og
-uten Tilgjengelighet-tilgang — bruker du CLI-en. Da mister du app-avhengighet og
-mediatransport, men volum, taster og mus virker:
+If you prefer fixed bindings stored on the pad — with no software running and no Accessibility
+permission — use the CLI. You lose app-specific behavior and media transport controls, but
+volume, keyboard, and mouse actions still work:
 
 ```bash
 .venv/bin/python macroctl.py flash config.example.yaml
 .venv/bin/python macroctl.py list-keys
 ```
 
-Syntaks: `cmd+c`, `cmd+shift+4`, `h,e,i` (sekvens), `c@100` (forsinkelse),
+Syntax: `cmd+c`, `cmd+shift+4`, `h,e,i` (sequence), `c@100` (delay),
 `volumeup`/`volumedown`/`mute`, `mouse:left`.
 
 ## Status
 
-- ✅ Tastebindinger, modifikatorer, sekvenser, forsinkelser
-- ✅ Volum opp/ned/mute direkte fra padden
-- ✅ Museklikk
-- ✅ App-avhengige taster og full mediatransport via daemonen
-- ✅ Tre software-profiler (Profil 1/2/3), byttes i UI-et eller menylinja
-- ⚠️ Play/pause/neste/forrige *direkte fra padden* — consumer-format ikke funnet
-      (daemonen gjør dette overflødig i praksis)
-- ⬜ LED-styring
-- ⬜ Fysiske hardware-lag (protokollen har `layer`-byte, men verten kan ikke lese
-      aktivt lag — software-profiler brukes i stedet)
+- ✅ Key bindings, modifiers, sequences, and delays
+- ✅ Volume up/down/mute directly from the pad
+- ✅ Mouse clicks
+- ✅ App-specific keys and full media transport controls through the daemon
+- ✅ Three software profiles (`Profile 1/2/3`), switchable from the UI or menu bar
+- ⚠️ Play/pause/next/previous *directly from the pad* — consumer format not found
+      (in practice, the daemon makes this unnecessary)
+- ⬜ LED control
+- ⬜ Physical hardware layers (the protocol has a `layer` byte, but the host cannot read the
+      active layer — software profiles are used instead)
 
-Se [docs/PROTOCOL.md](docs/PROTOCOL.md) for key-ID-kartet og protokolldetaljene.
+See [docs/PROTOCOL.md](docs/PROTOCOL.md) for the key ID map and protocol details.
 
-## Takk til
+## Acknowledgments
 
-[kriomant/ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool), og særlig
-[@yawor sitt arbeid i issue #153](https://github.com/kriomant/ch57x-keyboard-tool/issues/153)
-som knekket `03 fd`-rammeformatet på en beslektet 16-key/3-knob-variant. Dette prosjektet
-kartlegger 12-key/4-knob-varianten og finner at media-taster her bruker keyboard-siden,
-ikke consumer-siden.
+[kriomant/ch57x-keyboard-tool](https://github.com/kriomant/ch57x-keyboard-tool), especially
+[@yawor's work in issue #153](https://github.com/kriomant/ch57x-keyboard-tool/issues/153),
+which cracked the `03 fd` frame format on a related 16-key/3-knob variant. This project maps
+the 12-key/4-knob variant and finds that its media keys use the keyboard usage page rather than
+the consumer usage page.
 
-## Lisens
+## License
 
 MIT
