@@ -1,8 +1,11 @@
-# Protocol — XZKJ 12-key/4-knob (514C:8850)
+# Protocol — XZKJ macropads (514C:8850)
 
 Reverse-engineered on macOS against a physical device, July 2026. Based on
 [ch57x-keyboard-tool issue #153](https://github.com/kriomant/ch57x-keyboard-tool/issues/153),
 which documented the `03 fd` frame for the 16-key/3-knob variant with the same VID/PID.
+
+`514C:8850` identifies both supported layouts, not a single physical model. Select the model
+explicitly before writing bindings.
 
 ## Transport
 
@@ -75,6 +78,15 @@ the keyboard page, so they must use a consumer format we have not yet found.
 ```
 
 ## Key ID map
+
+### @XZKJ-16key_3knob
+
+The 4×4/3-knob model is row-major: `key1` through `key16` map directly to IDs `1` through
+`16`. Knob actions then occupy IDs `17–25`: knob 1 is `17–19`, knob 2 is `20–22`, and knob 3
+is `23–25` (left, press, right). Its consumer-media and mouse frames use the captured upstream
+16/3 format; keyboard bindings use the common frame documented above.
+
+### @XZKJ-12key_4knob
 
 The device counts keys **from bottom to top, column by column** — not in reading order. Mapped
 empirically by binding each ID to type its own number.

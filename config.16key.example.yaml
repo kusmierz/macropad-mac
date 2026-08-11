@@ -1,0 +1,15 @@
+# Eksempel for XZKJ @XZKJ-16key_3knob (16 taster + 3 knotter).
+# Flash med: .venv/bin/python macroctl.py flash config.16key.example.yaml
+model: xzkj_16key_3knob
+layer: 1
+
+keys:
+  - ["cmd+c", "cmd+v", "cmd+x", "cmd+z"]
+  - ["cmd+a", "cmd+w", "cmd+tab", "cmd+shift+4"]
+  - ["f13", "f14", "f15", "f16"]
+  - ["media:volumeup", "media:volumedown", "media:mute", "enter"]
+
+knobs:
+  1: {left: "media:prev", press: "media:play", right: "media:next"}
+  2: {left: "cmd+minus", press: "cmd+0", right: "cmd+shift+equal"}
+  3: {left: "up", press: "enter", right: "down"}

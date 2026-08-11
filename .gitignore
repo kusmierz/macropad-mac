@@ -4,6 +4,7 @@ __pycache__/
 bindings.json
 .DS_Store
 profiles.yaml
+config.yaml
 build/
 dist/
 *.spec

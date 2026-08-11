@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-Protocol library for the XZKJ macropad (VID 0x514C, PID 0x8850).
+Protokollbibliotek for XZKJ-makropad (VID 0x514C, PID 0x8850).
 
-Protocol (reverse-engineered; see kriomant/ch57x-keyboard-tool issue #153):
-  65-byte HID output reports on the vendor interface (usage page 0xFF00).
+Protokoll (reverse-engineeret, jf. kriomant/ch57x-keyboard-tool issue #153):
+  65-byte HID output-rapporter på vendor-grensesnittet (usage page 0xFF00).
 
-  Key binding (type 0x01 = keyboard):
+  Tastebinding (type 0x01 = tastatur):
     [0x03, 0xFD, key_id, layer, 0x01, 0x00, count,
-     (delay_hi, delay_lo, hid_code) * count, ... zero-padded to 65]
+     (delay_hi, delay_lo, hid_code) * count, ... 0-padding til 65]
 
-  Modifiers are separate codes in the sequence and apply to the next regular key:
+  Modifikatorer er egne koder i sekvensen og gjelder neste vanlige tast:
     0xF1 LCtrl  0xF2 LShift  0xF3 LAlt  0xF4 LMeta(Cmd)
     0xF5 RCtrl  0xF6 RShift  0xF7 RAlt  0xF8 RMeta
 """
@@ -17,7 +17,7 @@ import time
 import hid
 
 VID, PID = 0x514C, 0x8850
-REPORT_LEN = 65  # including report ID 0x03
+REPORT_LEN = 65  # inkl. report-ID 0x03
 
 MODIFIERS = {
     "lctrl": 0xF1, "ctrl": 0xF1,
@@ -42,11 +42,11 @@ HID_CODES = {
     "insert": 0x49, "home": 0x4A, "pageup": 0x4B,
     "delete": 0x4C, "end": 0x4D, "pagedown": 0x4E,
     "right": 0x4F, "left": 0x50, "down": 0x51, "up": 0x52,
-    # Media via keyboard usage page — verified on this device:
+    # Media via keyboard usage page — verifisert på denne enheten:
     "mute": 0x7F, "volumeup": 0x80, "volumedown": 0x81,
 }
 
-# Media/consumer codes (type 0x02; see k884x: 16-bit little-endian)
+# Media/consumer-koder (type 0x02, jf. k884x: 16-bit little-endian)
 MEDIA_CODES = {
     "play": 0xCD, "playpause": 0xCD, "next": 0xB5, "prev": 0xB6, "stop": 0xB7,
     "mute": 0xE2, "volumeup": 0xE9, "volumedown": 0xEA,
@@ -58,7 +58,7 @@ MEDIA_CODES = {
 def open_vendor_interface():
     devs = [d for d in hid.enumerate(VID, PID) if d["usage_page"] == 0xFF00]
     if not devs:
-        raise RuntimeError("Could not find the vendor interface (0xFF00). Is the keyboard connected?")
+        raise RuntimeError("Fant ikke vendor-grensesnittet (0xFF00). Er tastaturet koblet til?")
     h = hid.device()
     h.open_path(devs[0]["path"])
     return h
@@ -69,32 +69,41 @@ def _send(h, msg: bytes):
     buf[: len(msg)] = msg
     n = h.write(bytes(buf))
     if n not in (REPORT_LEN, REPORT_LEN - 1):
-        raise RuntimeError(f"Short write: {n} bytes")
+        raise RuntimeError(f"Kort skriving: {n} byte")
     time.sleep(0.02)
 
 
 def bind_key_sequence(h, key_id: int, entries, layer: int = 1):
-    """entries: a list of (delay_ms, hid_code). Maximum 18."""
-    assert 1 <= len(entries) <= 18, "1–18 key presses per binding"
+    """entries: liste av (delay_ms, hid_code). Maks 18."""
+    assert 1 <= len(entries) <= 18, "1–18 tastetrykk per binding"
     msg = bytearray([0x03, 0xFD, key_id, layer, 0x01, 0x00, len(entries)])
     for delay_ms, code in entries:
         msg += bytes([(delay_ms >> 8) & 0xFF, delay_ms & 0xFF, code])
     _send(h, bytes(msg))
 
 
-def bind_media(h, key_id: int, media_code: int, layer: int = 1):
-    """Media/consumer binding (type 0x02) — assumed to match k884x; unverified."""
+def bind_media(h, key_id: int, media_code: int, layer: int = 1, protocol="12_4"):
+    """Media/consumer-binding. The 16/3 model uses its captured frame layout."""
     lo, hi = media_code & 0xFF, (media_code >> 8) & 0xFF
+    if protocol == "16_3":
+        _send(h, bytes([0x03, 0xFD, key_id, layer, 0x02, 0x00, 0x02,
+                        0x00, 0x00, lo, 0x00, 0x00, hi]))
+        return
     _send(h, bytes([0x03, 0xFD, key_id, layer, 0x02, 0x00, 0x00, lo, hi]))
 
 
-def bind_mouse_click(h, key_id: int, buttons: int = 1, layer: int = 1):
-    """Mouse binding (type 0x03), button bitmask: 1=left, 2=right, 4=middle."""
+def bind_mouse_click(h, key_id: int, buttons: int = 1, layer: int = 1, protocol="12_4"):
+    """Mus-binding (type 0x03), buttons bitmask: 1=venstre 2=høyre 4=midt."""
+    if protocol == "16_3":
+        mouse_data = bytearray([1, 4] + [0] * 15)
+        mouse_data[7] = buttons
+        _send(h, bytes([0x03, 0xFD, key_id, layer, 0x03]) + mouse_data)
+        return
     _send(h, bytes([0x03, 0xFD, key_id, layer, 0x03, 0x00, 0x01, 0x00, buttons]))
 
 
 def finish(h):
-    """Finish the programming sequence (from k884x; unverified for 8850)."""
+    """Avslutt programmeringssekvens (rammeverk fra k884x — verifiseres for 8850)."""
     _send(h, bytes([0x03, 0xAA, 0xAA]))
     _send(h, bytes([0x03, 0xFD, 0xFE, 0xFF]))
     _send(h, bytes([0x03, 0xAA, 0xAA]))

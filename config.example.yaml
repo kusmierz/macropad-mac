@@ -1,6 +1,9 @@
 # Example configuration for the XZKJ macropad (12 keys + 4 knobs)
 # Flash with: .venv/bin/python macroctl.py flash config.example.yaml
 
+# Dette eksemplet gjelder @XZKJ-12key_4knob.
+model: xzkj_12key_4knob
+
 layer: 1
 
 # 4 rows x 3 columns, as the keyboard sits in front of you (row 1 = top)

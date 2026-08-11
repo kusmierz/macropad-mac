@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 """
-Makropad — graphical configurator.
+Makropad — grafisk konfigurator.
 
-Edits profiles.yaml: what each key and knob does, per app. The daemon picks up
-changes as soon as you save.
+Redigerer profiles.yaml: hva hver tast og knott gjør, per app. Daemonen plukker opp
+endringene med det samme du lagrer.
 
-    .venv/bin/python app.py        # opens http://127.0.0.1:8777
+    .venv/bin/python app.py        # åpner http://127.0.0.1:8777
 """
 import http.server
 import json
@@ -30,7 +30,7 @@ EXAMPLE = paths.EXAMPLE
 
 
 def running_apps():
-    """Applications with windows, for the app picker."""
+    """Apper med vindu — til app-velgeren."""
     try:
         from AppKit import NSWorkspace
         out = []
@@ -42,13 +42,16 @@ def running_apps():
         return []
 
 
-def flash_signals():
+def flash_signals(model_id=None):
+    model_id = model_id or store.active_model(store.load())
+    if model_id is None:
+        raise ValueError("Velg enhetsmodell før padden klargjøres")
     plan = []
-    for t in signals.TARGETS:
-        parts = signals.spec_for(t).split("+")
+    for t in signals.targets(model_id):
+        parts = signals.spec_for(t, model_id).split("+")
         entries = [(0, xzkj.MODIFIERS[m]) for m in parts[:-1]]
         entries.append((0, xzkj.HID_CODES[parts[-1]]))
-        plan.append((device.resolve(t), entries))
+        plan.append((device.resolve(t, model_id), entries))
     h = xzkj.open_vendor_interface()
     try:
         for kid, entries in plan:
@@ -90,10 +93,13 @@ class Handler(http.server.BaseHTTPRequestHandler):
             self.wfile.write(body)
         elif self.path == "/api/state":
             doc = store.load()
+            model_id = store.active_model(doc)
             self._json({
-                "doc": doc,                       # {active, profiles:{name:{default,apps}}}
+                "doc": doc,
+                "activeModel": model_id,
+                "models": device.public_models(),
                 "profileNames": store.NAMES,
-                "targets": signals.TARGETS,
+                "targets": signals.targets(model_id) if model_id else [],
                 "media": sorted(actions.NX),
                 "keys": sorted(keys.VK),
                 "categories": [{"id": i, "en": en, "no": no, "keys": ks}
@@ -123,8 +129,18 @@ class Handler(http.server.BaseHTTPRequestHandler):
         n = int(self.headers.get("Content-Length", 0))
         data = json.loads(self.rfile.read(n) or "{}")
         if self.path == "/api/save":
-            store.save(data)
-            self._json({"ok": True})
+            try:
+                model_id = data.get("active_model")
+                if model_id is not None and model_id not in device.MODELS:
+                    raise ValueError(f"Ukjent enhetsmodell: {model_id!r}")
+                self._json({"ok": True, "doc": store.save(data)})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
+        elif self.path == "/api/model":
+            try:
+                self._json({"ok": True, "doc": store.set_model(data.get("model"))})
+            except Exception as e:
+                self._json({"ok": False, "error": str(e)})
         elif self.path == "/api/validate":
             try:
                 actions.validate(data.get("action", ""))
@@ -133,7 +149,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._json({"ok": False, "error": str(e)})
         elif self.path == "/api/flash":
             try:
-                self._json({"ok": True, "count": flash_signals()})
+                self._json({"ok": True, "count": flash_signals(data.get("model"))})
             except Exception as e:
                 self._json({"ok": False, "error": str(e)})
         elif self.path == "/api/test":
@@ -159,9 +175,9 @@ if __name__ == "__main__":
     socketserver.TCPServer.allow_reuse_address = True
     with socketserver.TCPServer(("127.0.0.1", PORT), Handler) as httpd:
         url = f"http://127.0.0.1:{PORT}"
-        print(f"Makropad configurator is running at {url}  (Ctrl+C to quit)")
+        print(f"Makropad-konfigurator kjører på {url}  (Ctrl+C for å avslutte)")
         threading.Timer(0.6, lambda: webbrowser.open(url)).start()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:
-            print("\nStopped.")
+            print("\nAvsluttet.")
