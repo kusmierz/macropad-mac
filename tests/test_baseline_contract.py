@@ -119,5 +119,46 @@ class XzkjKeyboardFrameTests(unittest.TestCase):
         self.assertEqual(handle.writes, [])
 
 
+class XzkjLedFrameTests(unittest.TestCase):
+    def test_writes_static_rgb_palette_to_all_three_layers(self):
+        handle = FakeHidHandle()
+        palette = bytes([0xFF, 0x00, 0x00]) * xzkj.LED_COUNT
+
+        with mock.patch.object(xzkj.time, "sleep"):
+            xzkj.write_leds(handle, mode=1, palette=palette)
+
+        self.assertEqual(len(handle.writes), 3)
+        for layer, report in enumerate(handle.writes):
+            self.assertEqual(len(report), xzkj.REPORT_LEN)
+            self.assertEqual(report[:5], bytes([0x03, 0xFE, 0xB0, layer, 0x01]))
+            self.assertEqual(report[5:53], palette)
+            self.assertEqual(report[53:], bytes(12))
+
+    def test_rejects_wrong_palette_length_before_writing(self):
+        handle = FakeHidHandle()
+
+        with self.assertRaisesRegex(ValueError, "exactly 48 bytes"):
+            xzkj.write_leds(handle, mode=1, palette=bytes(47))
+
+        self.assertEqual(handle.writes, [])
+
+    def test_rejects_invalid_layer_before_writing(self):
+        handle = FakeHidHandle()
+
+        with self.assertRaisesRegex(ValueError, "between 0 and 2"):
+            xzkj.write_leds(handle, mode=1, palette=bytes(48), layers=(0, 3))
+
+        self.assertEqual(handle.writes, [])
+
+    def test_writes_one_static_color_to_every_led(self):
+        handle = FakeHidHandle()
+
+        with mock.patch.object(xzkj.time, "sleep"):
+            xzkj.write_led_color(handle, 0x12, 0x34, 0x56)
+
+        expected = bytes([0x12, 0x34, 0x56]) * xzkj.LED_COUNT
+        self.assertEqual([report[5:53] for report in handle.writes], [expected] * 3)
+
+
 if __name__ == "__main__":
     unittest.main()
