@@ -18,6 +18,8 @@ import hid
 
 VID, PID = 0x514C, 0x8850
 REPORT_LEN = 65  # including report ID 0x03
+LED_COUNT = 16
+LED_PALETTE_LEN = LED_COUNT * 3
 
 MODIFIERS = {
     "lctrl": 0xF1, "ctrl": 0xF1,
@@ -71,6 +73,28 @@ def _send(h, msg: bytes):
     if n not in (REPORT_LEN, REPORT_LEN - 1):
         raise RuntimeError(f"Short write: {n} bytes")
     time.sleep(0.02)
+
+
+def write_leds(h, mode: int, palette: bytes, layers=range(3)):
+    """Write a 16-color RGB palette and mode to the selected LED layers."""
+    if not 0 <= mode <= 5:
+        raise ValueError("LED mode must be between 0 and 5")
+    palette = bytes(palette)
+    if len(palette) != LED_PALETTE_LEN:
+        raise ValueError(f"LED palette must be exactly {LED_PALETTE_LEN} bytes")
+    layers = tuple(layers)
+    if any(not 0 <= layer <= 2 for layer in layers):
+        raise ValueError("LED layer must be between 0 and 2")
+    for layer in layers:
+        _send(h, bytes([0x03, 0xFE, 0xB0, layer, mode]) + palette)
+
+
+def write_led_color(h, red: int, green: int, blue: int, mode: int = 1):
+    """Set all LEDs on all layers to one RGB color (mode 1 is static)."""
+    channels = (red, green, blue)
+    if any(not 0 <= channel <= 255 for channel in channels):
+        raise ValueError("RGB channels must be between 0 and 255")
+    write_leds(h, mode, bytes(channels) * LED_COUNT)
 
 
 def bind_key_sequence(h, key_id: int, entries, layer: int = 1):
